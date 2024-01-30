@@ -81,16 +81,17 @@ UserSpecificDocker
 
 #If this env varible is empty, docker will be started
 # in non interactive mode
-DOCKER_INTERACTIVE_RUN=${DOCKER_INTERACTIVE_RUN-"-i -t"}
+DOCKER_INTERACTIVE_RUN=${DOCKER_INTERACTIVE_RUN-"-d -t"}
 
 # By mapping the .m2 directory you can do an mvn install from
 # within the container and use the result on your normal
 # system.  And this also is a significant speedup in subsequent
 # builds because the dependencies are downloaded only once.
-docker run --rm=true $DOCKER_INTERACTIVE_RUN \
+docker run $DOCKER_INTERACTIVE_RUN \
   -v "${PWD}:${DOCKER_HOME_DIR}/hadoop${V_OPTS:-}" \
   -w "${DOCKER_HOME_DIR}/hadoop" \
   -v "${HOME}/.m2:${DOCKER_HOME_DIR}/.m2${V_OPTS:-}" \
   -v "${HOME}/.gnupg:${DOCKER_HOME_DIR}/.gnupg${V_OPTS:-}" \
   -u "${USER_ID}" \
-  "hadoop-build-${USER_ID}" "$@"
+  --name hdfs \
+  "registry.naturecraft.world/barbadosian/dockerrepo/hadoop-mlec:latest" "$@"
