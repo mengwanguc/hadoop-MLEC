@@ -12,29 +12,61 @@ services:
     volumes:
       - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
       - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
+      - volume-name-1:/data
     entrypoint: bash namenode-entrypoint.sh
     networks:
       - intra
 
-  datanode:
+  datanode-1:
     image: hdfs-runtime:latest
     restart: always
-    environment:
-      HDFS_DATANODE_USER: root
     volumes:
       - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
       - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
+      - volume-data-1:/data
     entrypoint: hdfs datanode
     networks:
       - intra
-    deploy:
-      mode: replicated
-      replicas: 3
+
+  datanode-2:
+    image: hdfs-runtime:latest
+    restart: always
+    volumes:
+      - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
+      - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
+      - volume-data-2:/data
+    entrypoint: hdfs datanode
+    networks:
+      - intra
+
+  datanode-3:
+    image: hdfs-runtime:latest
+    restart: always
+    volumes:
+      - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
+      - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
+      - volume-data-3:/data
+    entrypoint: hdfs datanode
+    networks:
+      - intra
+
+  datanode-4:
+    image: hdfs-runtime:latest
+    restart: always
+    volumes:
+      - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
+      - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
+      - volume-data-4:/data
+    entrypoint: hdfs datanode
+    networks:
+      - intra
 
 networks:
     intra:
 
 volumes:
-  test_volume_1:
-  test_volume_2:
-  test_volume_3:
+  volume-name-1:
+  volume-data-1:
+  volume-data-2:
+  volume-data-3:
+  volume-data-4:
