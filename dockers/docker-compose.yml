@@ -12,7 +12,6 @@ services:
     volumes:
       - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
       - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
-      - volume-name-1:/data
     entrypoint: bash namenode-entrypoint.sh
     networks:
       - intra
@@ -23,7 +22,6 @@ services:
     volumes:
       - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
       - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
-      - volume-data-1:/data
     entrypoint: hdfs datanode
     networks:
       - intra
@@ -34,7 +32,6 @@ services:
     volumes:
       - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
       - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
-      - volume-data-2:/data
     entrypoint: hdfs datanode
     networks:
       - intra
@@ -45,7 +42,6 @@ services:
     volumes:
       - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
       - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
-      - volume-data-3:/data
     entrypoint: hdfs datanode
     networks:
       - intra
@@ -56,17 +52,9 @@ services:
     volumes:
       - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
       - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
-      - volume-data-4:/data
     entrypoint: hdfs datanode
     networks:
       - intra
 
 networks:
     intra:
-
-volumes:
-  volume-name-1:
-  volume-data-1:
-  volume-data-2:
-  volume-data-3:
-  volume-data-4:
