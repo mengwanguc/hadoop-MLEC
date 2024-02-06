@@ -1,0 +1,40 @@
+# This grabs hadoop-VERSION-snapshot.tar from the hadoop-dist/target directory and create a hadoop docker image
+version: '3.3'
+name: hadoop-four-nodes
+services:
+  namenode:
+    image: hdfs-runtime:latest
+    restart: always
+    environment:
+      HDFS_DATANODE_USER: root
+    ports:
+      - "9870:9870"
+    volumes:
+      - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
+      - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
+    entrypoint: bash namenode-entrypoint.sh
+    networks:
+      - intra
+
+  datanode:
+    image: hdfs-runtime:latest
+    restart: always
+    environment:
+      HDFS_DATANODE_USER: root
+    volumes:
+      - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
+      - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
+    entrypoint: hdfs datanode
+    networks:
+      - intra
+    deploy:
+      mode: replicated
+      replicas: 3
+
+networks:
+    intra:
+
+volumes:
+  test_volume_1:
+  test_volume_2:
+  test_volume_3:

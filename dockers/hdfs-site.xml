@@ -1,0 +1,16 @@
+<configuration>
+    <property>
+            <name>dfs.namenode.name.dir</name>
+            <value>/data/nameNode</value>
+    </property>
+
+    <property>
+            <name>dfs.datanode.data.dir</name>
+            <value>/data/dataNode</value>
+    </property>
+
+    <property>
+            <name>dfs.replication</name>
+            <value>3</value>
+    </property>
+</configuration>
