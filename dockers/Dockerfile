@@ -14,8 +14,14 @@ COPY ./hadoop-dist/target/$HADOOP_NAME.tar.gz /opt
 RUN tar -xvf $HADOOP_NAME.tar.gz -C /opt
 RUN chmod +x /opt/$HADOOP_NAME/bin/hdfs
 RUN mkdir /opt/$HADOOP_NAME/logs
+
+# Copy the namenode entry point
 COPY ./dockers/namenode-entrypoint.sh /opt/$HADOOP_NAME/sbin/
 RUN chmod +x /opt/$HADOOP_NAME/sbin/namenode-entrypoint.sh
+
+# Copy the datanode test init script
+COPY ./dockers/seed_test.sh /opt/seed_test.sh
+RUN chmod +x /opt/seed_test.sh
 
 # Create a data directory for HDFS, we will point to this directory in config
 RUN mkdir -p /data/dataNode
