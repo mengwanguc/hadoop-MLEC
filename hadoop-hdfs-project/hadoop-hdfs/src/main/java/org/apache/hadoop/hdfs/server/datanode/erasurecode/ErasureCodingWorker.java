@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hdfs.server.datanode.erasurecode;
 
+import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.util.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
@@ -28,6 +29,7 @@ import org.apache.hadoop.hdfs.util.StripedBlockUtil.BlockReadStats;
 import org.apache.hadoop.util.Daemon;
 import org.slf4j.Logger;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
@@ -36,6 +38,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * ErasureCodingWorker handles the erasure coding reconstruction work commands.
@@ -122,6 +125,19 @@ public final class ErasureCodingWorker {
       Collection<BlockECReconstructionInfo> ecTasks) {
     for (BlockECReconstructionInfo reconInfo : ecTasks) {
       try {
+        final String targetDataNodesStr = Arrays.stream(reconInfo.getTargetDnInfos())
+                .map(DatanodeInfo::getName)
+                .collect(Collectors.joining(","));
+        // Log what we are reconstructing here
+        LOG.warn("====Trying to start a reconstruction task====\n"
+                + "poolId {}, blockId {}\n"
+                + "target data nodes {}\n"
+                + "target storage type {}, id {}",
+                reconInfo.getExtendedBlock().getBlockPoolId(),
+                reconInfo.getExtendedBlock().getBlockId(),
+                targetDataNodesStr,
+                reconInfo.getTargetStorageTypes(), reconInfo.getTargetStorageIDs());
+
         StripedReconstructionInfo stripedReconInfo =
             new StripedReconstructionInfo(
             reconInfo.getExtendedBlock(), reconInfo.getErasureCodingPolicy(),

@@ -19,6 +19,7 @@ package org.apache.hadoop.hdfs.server.datanode.erasurecode;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.hdfs.server.datanode.DataNodeFaultInjector;
@@ -88,6 +89,11 @@ class StripedBlockReconstructor extends StripedReconstructor
 
   @Override
   void reconstruct() throws IOException {
+    long loopStart = Time.monotonicNow();
+    LOG.warn("Reconstruction started at {}", Instant.ofEpochMilli(Time.now()).toString());
+    long bytesRead = 0;
+    long bytesTransferred = 0;
+
     while (getPositionInBlock() < getMaxTargetLength()) {
       DataNodeFaultInjector.get().stripedBlockReconstruction();
       long remaining = getMaxTargetLength() - getPositionInBlock();
@@ -96,6 +102,7 @@ class StripedBlockReconstructor extends StripedReconstructor
 
       long start = Time.monotonicNow();
       long bytesToRead = (long) toReconstructLen * getStripedReader().getMinRequiredSources();
+      bytesRead += bytesToRead;
       if (getDatanode().getEcReconstuctReadThrottler() != null) {
         getDatanode().getEcReconstuctReadThrottler().throttle(bytesToRead);
       }
@@ -110,6 +117,7 @@ class StripedBlockReconstructor extends StripedReconstructor
 
       // step3: transfer data
       long bytesToWrite = (long) toReconstructLen * stripedWriter.getTargets();
+      bytesTransferred += bytesToWrite;
       if (getDatanode().getEcReconstuctWriteThrottler() != null) {
         getDatanode().getEcReconstuctWriteThrottler().throttle(bytesToWrite);
       }
@@ -129,6 +137,10 @@ class StripedBlockReconstructor extends StripedReconstructor
 
       clearBuffers();
     }
+
+    LOG.warn("Reconstruction ended at {}, total {} seconds", Instant.ofEpochMilli(Time.now()).toString(),
+            (Time.monotonicNow() - loopStart));
+    LOG.warn("Total read {} bytes, wrote {} bytes", bytesRead, bytesTransferred);
   }
 
   private void reconstructTargets(int toReconstructLen) throws IOException {

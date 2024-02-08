@@ -19,4 +19,8 @@
         <name>net.topology.script.file.name</name>
         <value>/opt/rack-topo.sh</value>
     </property>
+    <property>
+        <name>dfs.blocksize</name>
+        <value>1g</value>
+    </property>
 </configuration>

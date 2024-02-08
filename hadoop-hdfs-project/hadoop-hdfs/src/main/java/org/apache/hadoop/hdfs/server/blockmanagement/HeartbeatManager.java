@@ -438,6 +438,7 @@ class HeartbeatManager implements DatanodeStatistics {
    */
   @VisibleForTesting
   void heartbeatCheck() {
+    LOG.info("heartbeatCheck() called");
     final DatanodeManager dm = blockManager.getDatanodeManager();
     // It's OK to check safe mode w/o taking the lock here, we re-check
     // for safe mode after taking the lock before removing a datanode.
@@ -513,6 +514,7 @@ class HeartbeatManager implements DatanodeStatistics {
       }
 
       for (DatanodeDescriptor dead : deadDatanodes) {
+        LOG.warn("Data node {} is dead", dead.getName());
         // acquire the fsnamesystem lock, and then remove the dead node.
         namesystem.writeLock();
         try {
@@ -541,6 +543,7 @@ class HeartbeatManager implements DatanodeStatistics {
     @Override
     public void run() {
       while(namesystem.isRunning()) {
+        LOG.info("HeartbeatManager running");
         restartHeartbeatStopWatch();
         try {
           final long now = Time.monotonicNow();
