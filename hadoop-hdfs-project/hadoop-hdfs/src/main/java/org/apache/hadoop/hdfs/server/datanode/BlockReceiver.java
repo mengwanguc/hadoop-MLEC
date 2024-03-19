@@ -421,9 +421,11 @@ class BlockReceiver implements Closeable {
    * @throws IOException
    */
   void flushOrSync(boolean isSync, long seqno) throws IOException {
+    LOG.debug("Starting to flush a block");
     long flushTotalNanos = 0;
     long begin = Time.monotonicNow();
     DataNodeFaultInjector.get().delay();
+
     if (checksumOut != null) {
       long flushStartNanos = System.nanoTime();
       checksumOut.flush();
@@ -434,6 +436,7 @@ class BlockReceiver implements Closeable {
       }
       flushTotalNanos += flushEndNanos - flushStartNanos;
     }
+
     if (streams.getDataOut() != null) {
       long flushStartNanos = System.nanoTime();
       streams.flushDataOut();
@@ -546,6 +549,7 @@ class BlockReceiver implements Closeable {
    * returns the number of data bytes that the packet has.
    */
   private int receivePacket() throws IOException {
+    LOG.debug("Received some packets in BlockReceiver");
     // read the next packet
     packetReceiver.receiveNextPacket(in);
 
@@ -572,6 +576,7 @@ class BlockReceiver implements Closeable {
     final int len = header.getDataLen();
     boolean syncBlock = header.getSyncBlock();
 
+    LOG.debug("Packet offset in block {}, packet length {}, sync {}", offsetInBlock, len, syncBlock);
     // avoid double sync'ing on close
     if (syncBlock && lastPacketInBlock) {
       this.syncOnClose = false;

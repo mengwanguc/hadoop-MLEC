@@ -293,6 +293,7 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
                                     final BlockStoragePolicy storagePolicy,
                                     EnumSet<AddBlockFlag> addBlockFlags,
                                     EnumMap<StorageType, Integer> sTypes) {
+    LOG.info("BlockPlacementPolicyDefault, chosenStorage size {}", chosenStorage.size());
     if (numOfReplicas == 0 || clusterMap.getNumOfLeaves()==0) {
       return DatanodeStorageInfo.EMPTY_ARRAY;
     }
@@ -326,6 +327,7 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
     // back to the default block placement
     // policy.
     if (avoidLocalRack) {
+      LOG.info("chooseTarget: Trying to avoid local rack");
       results = new ArrayList<>(chosenStorage);
       Set<Node> excludedNodeCopy = new HashSet<>(excludedNodes);
       excludedNodeCopy
@@ -343,6 +345,7 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
     // nodes can be obtained, it falls back to the default block placement
     // policy.
     if (avoidLocalNode && results == null) {
+      LOG.info("chooseTarget: Trying to avoid local node");
       results = new ArrayList<>(chosenStorage);
       Set<Node> excludedNodeCopy = new HashSet<>(excludedNodes);
       if (writer != null) {
@@ -357,7 +360,9 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
         results = null;
       }
     }
+
     if (results == null) {
+      LOG.info("chooseTarget: Allowing both local rack and local node due to insufficienet choices");
       results = new ArrayList<>(chosenStorage);
       localNode = chooseTarget(numOfReplicas, writer, excludedNodes,
           blocksize, maxNodesPerRack, results, avoidStaleNodes,
@@ -487,6 +492,7 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
             + " unavailableStorages=" + unavailableStorages
             + ", storagePolicy=" + storagePolicy);
       }
+      LOG.info("Calling chooseTargetInOrder with results size {}", results.size());
       writer = chooseTargetInOrder(numOfReplicas, writer, excludedNodes, blocksize,
           maxNodesPerRack, results, avoidStaleNodes, newBlock, storageTypes);
     } catch (NotEnoughReplicasException e) {
@@ -832,6 +838,7 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
       builder.setLength(0);
       builder.append("[");
     }
+    LOG.info("Selecting {} out of scope {}. Result size currently {}", numOfReplicas, scope, results.size());
     CHOOSE_RANDOM_REASONS.get().clear();
     boolean badTarget = false;
     DatanodeStorageInfo firstChosen = null;
@@ -904,6 +911,8 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
         badTarget = (storage == null);
       }
     }
+
+    // This is for debugging purpose only
     if (numOfReplicas>0) {
       String detail = enableDebugLogging;
       if (LOG.isDebugEnabled()) {
@@ -926,6 +935,10 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
       }
       throw new NotEnoughReplicasException(detail);
     }
+
+    results.forEach(datanodeStorageInfo -> {
+      LOG.info("Selected data node {} {}", datanodeStorageInfo.getDatanodeDescriptor().getHostName(), datanodeStorageInfo.getStorageType());
+    });
     
     return firstChosen;
   }

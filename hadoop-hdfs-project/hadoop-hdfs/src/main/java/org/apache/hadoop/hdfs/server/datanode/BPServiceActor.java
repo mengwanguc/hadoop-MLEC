@@ -261,9 +261,9 @@ class BPServiceActor implements Runnable {
         LOG.debug(this + " received versionRequest response: " + nsInfo);
         break;
       } catch(SocketTimeoutException e) {  // namenode is busy
-        LOG.warn("Problem connecting to server: " + nnAddr);
+        LOG.error("Problem connecting to server, socket timeout: " + nnAddr, e);
       } catch(IOException e ) {  // namenode is not available
-        LOG.warn("Problem connecting to server: " + nnAddr);
+        LOG.error("Problem connecting to server, io exception: " + nnAddr, e);
       }
       
       // try again in a second
@@ -842,7 +842,7 @@ class BPServiceActor implements Runnable {
         LOG.warn("RemoteException in register to server: {}.", nnAddr, e);
         throw e;
       } catch(IOException e) {
-        LOG.warn("Problem connecting to server: {}.", nnAddr);
+        LOG.error("Problem connecting to server: {}.", nnAddr, e);
       }
       // Try again in a second
       sleepAndLogInterrupts(1000, "connecting to server");

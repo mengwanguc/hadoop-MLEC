@@ -1810,6 +1810,7 @@ public class BlockManager implements BlockStatsMXBean {
    
   /** Remove the blocks associated to the given datanode. */
   void removeBlocksAssociatedTo(final DatanodeDescriptor node) {
+    LOG.info("Removing blocks on data node {}", node.getHostName());
     providedStorageMap.removeDatanode(node);
     final Iterator<BlockInfo> it = node.getBlockIterator();
     while(it.hasNext()) {
@@ -4414,7 +4415,7 @@ public class BlockManager implements BlockStatsMXBean {
    * tasks, if the removed block is still valid.
    */
   public void removeStoredBlock(BlockInfo storedBlock, DatanodeDescriptor node) {
-    blockLog.debug("BLOCK* removeStoredBlock: {} from {}", storedBlock, node);
+    blockLog.info("BLOCK* removeStoredBlock: {} from {}", storedBlock, node);
     assert (namesystem.hasWriteLock());
     {
       if (storedBlock == null || !blocksMap.removeNode(storedBlock, node)) {
