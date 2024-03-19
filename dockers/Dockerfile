@@ -19,6 +19,10 @@ RUN mkdir /opt/$HADOOP_NAME/logs
 COPY ./dockers/namenode-entrypoint.sh /opt/$HADOOP_NAME/sbin/
 RUN chmod +x /opt/$HADOOP_NAME/sbin/namenode-entrypoint.sh
 
+# Copy the datanode entry point
+COPY ./dockers/datanode-entrypoint.sh /opt/$HADOOP_NAME/sbin/
+RUN chmod +x /opt/$HADOOP_NAME/sbin/datanode-entrypoint.sh
+
 # Copy the datanode test init script
 COPY ./dockers/seed_test.sh /opt/seed_test.sh
 RUN chmod +x /opt/seed_test.sh
@@ -29,13 +33,19 @@ RUN mkdir -p /data/nameNode
 
 # bash is the preferred shell
 RUN apk update
-RUN apk add bash openssh sudo
+RUN apk add bash openssh sudo openrc
+
+# Start the ssh service
+RUN rc-status \
+    # touch softlevel because system was initialized without openrc
+    && touch /run/openrc/softlevel
 
 # Configure key based ssh
 RUN mkdir ~/.ssh
-COPY ./dockers/hadoop-id-rsa /root/.ssh
-COPY ./dockers/hadoop-id-rsa.pub /root/.ssh
+COPY ./dockers/hadoop-id-rsa /root/.ssh/id_rsa
+COPY ./dockers/hadoop-id-rsa.pub /root/.ssh/id_rsa.pub
 COPY ./dockers/hadoop-id-rsa.pub /root/.ssh/authorized_keys
+COPY ./dockers/hadoop-ssh-config /root/.ssh/config
 
 # Configure ENV variables
 ENV HADOOP_HOME=/opt/$HADOOP_NAME

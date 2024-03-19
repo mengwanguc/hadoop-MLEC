@@ -24,7 +24,7 @@ services:
       - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
       - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
       - ./rack-topo.sh:/opt/rack-topo.sh
-    entrypoint: hdfs datanode
+    entrypoint: bash datanode-entrypoint.sh
     networks:
       - intra
     deploy:
