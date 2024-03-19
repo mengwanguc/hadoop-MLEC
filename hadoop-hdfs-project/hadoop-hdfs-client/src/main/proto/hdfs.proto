@@ -224,6 +224,7 @@ enum StorageTypeProto {
   RAM_DISK = 4;
   PROVIDED = 5;
   NVDIMM = 6;
+  ZFS = 7;
 }
 
 /**
