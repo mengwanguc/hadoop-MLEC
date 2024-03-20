@@ -33,7 +33,7 @@ RUN mkdir -p /data/nameNode
 
 # bash is the preferred shell
 RUN apk update
-RUN apk add bash openssh sudo openrc
+RUN apk add bash openssh sudo openrc util-linux
 
 # Start the ssh service
 RUN rc-status \
@@ -55,5 +55,3 @@ ENV HDFS_NAMENODE_USER=root
 ENV HDFS_SECONDARYNAMENODE_USER=root
 
 ENV JAVA_HOME=/opt/java/openjdk
-
-
