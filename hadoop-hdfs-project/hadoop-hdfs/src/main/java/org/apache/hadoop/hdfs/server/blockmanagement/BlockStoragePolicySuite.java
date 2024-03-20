@@ -18,6 +18,7 @@
 package org.apache.hadoop.hdfs.server.blockmanagement;
 
 import org.apache.hadoop.classification.VisibleForTesting;
+import org.apache.hadoop.hdfs.server.common.Storage;
 import org.apache.hadoop.util.Preconditions;
 
 import org.apache.hadoop.conf.Configuration;
@@ -100,9 +101,9 @@ public class BlockStoragePolicySuite {
     final byte providedId = HdfsConstants.StoragePolicy.PROVIDED.value();
     policies[providedId] = new BlockStoragePolicy(providedId,
       HdfsConstants.StoragePolicy.PROVIDED.name(),
-      new StorageType[]{StorageType.PROVIDED, StorageType.DISK},
-      new StorageType[]{StorageType.PROVIDED, StorageType.DISK},
-      new StorageType[]{StorageType.PROVIDED, StorageType.DISK});
+      new StorageType[]{StorageType.PROVIDED, StorageType.DISK, StorageType.ZFS},
+      new StorageType[]{StorageType.PROVIDED, StorageType.DISK, StorageType.ZFS},
+      new StorageType[]{StorageType.PROVIDED, StorageType.DISK, StorageType.ZFS});
 
     return new BlockStoragePolicySuite(getDefaultPolicyID(conf, policies),
         policies);
