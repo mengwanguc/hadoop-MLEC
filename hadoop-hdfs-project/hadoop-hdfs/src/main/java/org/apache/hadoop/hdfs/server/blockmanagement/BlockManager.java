@@ -92,6 +92,7 @@ import org.apache.hadoop.hdfs.server.blockmanagement.ExcessRedundancyMap.ExcessB
 import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.BlockUCState;
 import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.ReplicaState;
 import org.apache.hadoop.hdfs.server.namenode.CachedBlock;
+import org.apache.hadoop.hdfs.server.namenode.FSNamesystem;
 import org.apache.hadoop.hdfs.server.namenode.INode.BlocksMapUpdateInfo;
 import org.apache.hadoop.hdfs.server.namenode.INodeFile;
 import org.apache.hadoop.hdfs.server.namenode.INodesInPath;
@@ -4415,7 +4416,14 @@ public class BlockManager implements BlockStatsMXBean {
    * tasks, if the removed block is still valid.
    */
   public void removeStoredBlock(BlockInfo storedBlock, DatanodeDescriptor node) {
-    blockLog.info("BLOCK* removeStoredBlock: {} from {}", storedBlock, node);
+
+    try {
+      throw new RuntimeException("Oops");
+    } catch (Exception e) {
+      blockLog.error("Calling removeStoredBlock", e);
+    }
+
+    blockLog.info("BLOCK* removeStoredBlock: {} from {} hehe", storedBlock, node);
     assert (namesystem.hasWriteLock());
     {
       if (storedBlock == null || !blocksMap.removeNode(storedBlock, node)) {
@@ -4649,6 +4657,12 @@ public class BlockManager implements BlockStatsMXBean {
     for (ReceivedDeletedBlockInfo rdbi : srdb.getBlocks()) {
       switch (rdbi.getStatus()) {
       case DELETED_BLOCK:
+        LOG.info("Deleting block");
+
+        long collectionId = this.getStoredBlock(rdbi.getBlock()).getBlockCollectionId();
+        FSNamesystem fsNamesystem = (FSNamesystem) this.namesystem;
+
+        LOG.info("{}", fsNamesystem.getBlockCollection(collectionId).getFullPathName());
         removeStoredBlock(storageInfo, rdbi.getBlock(), node);
         deleted++;
         break;

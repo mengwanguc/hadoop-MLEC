@@ -476,6 +476,7 @@ class HeartbeatManager implements DatanodeStatistics {
             removeNodeFromStaleList(d);
           } else {
             if (d.isStale(dm.getStaleInterval())) {
+              LOG.info("DataNode {} is stale", d.getHostName());
               if (staleDataNodes.add(d)) {
                 // the node is n
                 staleNodes.add(d);
@@ -515,6 +516,12 @@ class HeartbeatManager implements DatanodeStatistics {
 
       for (DatanodeDescriptor dead : deadDatanodes) {
         LOG.warn("Data node {} is dead", dead.getName());
+
+
+        if (dead.getStorageTypes().size() == 1 && dead.getStorageTypes().contains(StorageType.ZFS)) {
+          LOG.warn("Failed data node is type ZFS");
+        }
+
         // acquire the fsnamesystem lock, and then remove the dead node.
         namesystem.writeLock();
         try {
@@ -523,7 +530,9 @@ class HeartbeatManager implements DatanodeStatistics {
           namesystem.writeUnlock("removeDeadDatanode");
         }
       }
+
       for (DatanodeStorageInfo failedStorage : failedStorages) {
+        LOG.info("Storage failure detected {}", failedStorage);
         // acquire the fsnamesystem lock, and remove blocks on the storage.
         namesystem.writeLock();
         try {

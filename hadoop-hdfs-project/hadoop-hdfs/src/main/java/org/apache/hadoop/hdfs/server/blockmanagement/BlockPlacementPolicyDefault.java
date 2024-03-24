@@ -293,8 +293,8 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
                                     final BlockStoragePolicy storagePolicy,
                                     EnumSet<AddBlockFlag> addBlockFlags,
                                     EnumMap<StorageType, Integer> sTypes) {
-    LOG.info("BlockPlacementPolicyDefault, chosenStorage size {}", chosenStorage.size());
-    LOG.info("Storage types {}", sTypes);
+    LOG.debug("BlockPlacementPolicyDefault, chosenStorage size {}", chosenStorage.size());
+    LOG.debug("Storage types {}", sTypes);
     if (numOfReplicas == 0 || clusterMap.getNumOfLeaves()==0) {
       return DatanodeStorageInfo.EMPTY_ARRAY;
     }
@@ -363,7 +363,7 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
     }
 
     if (results == null) {
-      LOG.info("chooseTarget: Allowing both local rack and local node due to insufficienet choices");
+      LOG.debug("chooseTarget: Allowing both local rack and local node due to insufficienet choices");
       results = new ArrayList<>(chosenStorage);
       localNode = chooseTarget(numOfReplicas, writer, excludedNodes,
           blocksize, maxNodesPerRack, results, avoidStaleNodes,

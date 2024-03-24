@@ -5332,6 +5332,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
       throws IOException {
     writeLock();
     try {
+      LOG.info("Received/Deleted blocks {} from {}", srdb.getBlocks(), srdb.getStorage());
       blockManager.processIncrementalBlockReport(nodeID, srdb);
     } finally {
       writeUnlock("processIncrementalBlockReport");

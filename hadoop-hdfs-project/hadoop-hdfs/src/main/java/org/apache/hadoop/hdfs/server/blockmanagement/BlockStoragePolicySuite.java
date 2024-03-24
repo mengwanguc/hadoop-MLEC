@@ -85,8 +85,9 @@ public class BlockStoragePolicySuite {
     final byte hotId = HdfsConstants.StoragePolicy.HOT.value();
     policies[hotId] = new BlockStoragePolicy(hotId,
         HdfsConstants.StoragePolicy.HOT.name(),
-        new StorageType[]{StorageType.DISK}, StorageType.EMPTY_ARRAY,
-        new StorageType[]{StorageType.ARCHIVE});
+        new StorageType[]{StorageType.DISK, StorageType.ZFS},
+        new StorageType[]{StorageType.ZFS},
+        new StorageType[]{StorageType.ARCHIVE, StorageType.ZFS});
     final byte warmId = HdfsConstants.StoragePolicy.WARM.value();
     policies[warmId] = new BlockStoragePolicy(warmId,
         HdfsConstants.StoragePolicy.WARM.name(),
