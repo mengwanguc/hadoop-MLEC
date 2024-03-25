@@ -2185,12 +2185,14 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
    */
   LocatedBlocks getBlockLocations(String clientMachine, String srcArg,
       long offset, long length) throws IOException {
+    LOG.info("Name node trying to get block location for {}, {}", clientMachine, srcArg);
     final String operationName = "open";
     checkOperation(OperationCategory.READ);
     GetBlockLocationsResult res = null;
     final FSPermissionChecker pc = getPermissionChecker();
     FSPermissionChecker.setOperationType(operationName);
     final INode inode;
+
     try {
       readLock();
       try {
