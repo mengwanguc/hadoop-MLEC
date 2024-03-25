@@ -21,6 +21,6 @@
     </property>
     <property>
         <name>dfs.blocksize</name>
-        <value>1G</value>
+        <value>1M</value>
     </property>
 </configuration>
