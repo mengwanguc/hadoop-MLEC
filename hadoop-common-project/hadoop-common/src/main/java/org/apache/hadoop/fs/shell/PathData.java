@@ -343,6 +343,7 @@ public class PathData implements Comparable<PathData> {
    */
   public static PathData[] expandAsGlob(String pattern, Configuration conf)
   throws IOException {
+    System.out.println("Expanding GLOB path " + pattern);
     Path globPath = new Path(pattern);
     FileSystem fs = globPath.getFileSystem(conf);    
     FileStatus[] stats = fs.globStatus(globPath);

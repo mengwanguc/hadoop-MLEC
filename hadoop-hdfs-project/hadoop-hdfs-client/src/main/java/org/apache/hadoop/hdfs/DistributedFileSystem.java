@@ -332,6 +332,7 @@ public class DistributedFileSystem extends FileSystem
   @Override
   public FSDataInputStream open(Path f, final int bufferSize)
       throws IOException {
+    LOG.info("DFS::open called");
     statistics.incrementReadOps(1);
     storageStatistics.incrementOpCounter(OpType.OPEN);
     Path absF = fixRelativePart(f);

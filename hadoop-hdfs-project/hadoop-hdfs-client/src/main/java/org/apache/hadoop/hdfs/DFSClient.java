@@ -1074,6 +1074,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
     //    Get block info from namenode
     try (TraceScope ignored = newPathTraceScope("newDFSInputStream", src)) {
       LocatedBlocks locatedBlocks = getLocatedBlocks(src, 0);
+      LOG.info("Located {} blocks", locatedBlocks.getLocatedBlocks().size());
       return openInternal(locatedBlocks, src, verifyChecksum);
     }
   }
@@ -1097,6 +1098,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
     String src = fd.getPath();
     try (TraceScope ignored = newPathTraceScope("newDFSInputStream", src)) {
       HdfsLocatedFileStatus s = getLocatedFileInfo(src, true);
+      System.out.println("Located file " + s);
       fd.verify(s); // check invariants in path handle
       LocatedBlocks locatedBlocks = s.getLocatedBlocks();
       return openInternal(locatedBlocks, src, verifyChecksum);

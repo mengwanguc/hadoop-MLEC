@@ -91,6 +91,8 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.util.Time;
 
 import org.apache.hadoop.classification.VisibleForTesting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 
@@ -105,6 +107,7 @@ public class DFSInputStream extends FSInputStream
     implements ByteBufferReadable, CanSetDropBehind, CanSetReadahead,
                HasEnhancedByteBufferAccess, CanUnbuffer, StreamCapabilities,
                ByteBufferPositionedReadable {
+  private static final Logger LOG = LoggerFactory.getLogger(DFSInputStream.class);
   @VisibleForTesting
   public static boolean tcpReadsDisabledForTesting = false;
   private long hedgedReadOpsLoopNumForTesting = 0;
@@ -209,6 +212,8 @@ public class DFSInputStream extends FSInputStream
     synchronized (infoLock) {
       this.cachingStrategy = dfsClient.getDefaultReadCachingStrategy();
     }
+    LOG.info("DFSInputStream initialized with blocks");
+    LOG.info("{}", locatedBlocks.getLocatedBlocks());
     this.locatedBlocks = locatedBlocks;
     openInfo(false);
   }
@@ -604,6 +609,7 @@ public class DFSInputStream extends FSInputStream
     if (target >= getFileLength()) {
       throw new IOException("Attempted to read past end of file");
     }
+    LOG.info("Seeking to offset {}", target);
 
     maybeRegisterBlockRefresh();
 
@@ -625,6 +631,7 @@ public class DFSInputStream extends FSInputStream
       //
 
       LocatedBlock targetBlock = getBlockAt(target);
+      LOG.info("Block at {} is {}", target, targetBlock);
 
       // update current position
       this.pos = target;
@@ -636,6 +643,7 @@ public class DFSInputStream extends FSInputStream
 
       DNAddrPair retval = chooseDataNode(targetBlock, null);
       chosenNode = retval.info;
+      LOG.info("The block is located on datanode {}", chosenNode.getHostName());
       InetSocketAddress targetAddr = retval.addr;
       StorageType storageType = retval.storageType;
       // Latest block if refreshed by chooseDatanode()

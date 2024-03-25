@@ -90,7 +90,8 @@ class Display extends FsCommand {
       if (item.stat.isDirectory()) {
         throw new PathIsDirectoryException(item.toString());
       }
-      
+
+      System.out.println("Calling processOptions in Display::Cat");
       item.fs.setVerifyChecksum(verifyChecksum);
       printToStdout(getInputStream(item));
     }

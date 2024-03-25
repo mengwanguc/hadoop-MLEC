@@ -4934,6 +4934,7 @@ public abstract class FileSystem extends Configured
           .withStatus(super.getStatus())
           .withBufferSize(
               getOptions().getInt(FS_OPTION_OPENFILE_BUFFER_SIZE, getBufferSize()));
+      LOG.info("Building file system input stream {}", parameters);
       if(optionalPath.isPresent()) {
         return getFS().openFileWithOptions(optionalPath.get(),
             parameters);
