@@ -4,9 +4,9 @@ read -p "Do you want to build HDFS source code? (y/n) " yn
 
 case $yn in y )
   # Build HDFS
-  docker exec hdfs bash -c "cd hadoop-common-project && mvn -T 24 clean package install -Pdist -DskipTests -Dtar -Dmaven.javadoc.skip=true"
-  docker exec hdfs bash -c "cd hadoop-hdfs-project && mvn -T 24 clean package -Pdist -DskipTests -Dtar -Dmaven.javadoc.skip=true"
-  docker exec hdfs bash -c "cd hadoop-dist && mvn -T 24 clean package -Pdist -DskipTests -Dtar -Dmaven.javadoc.skip=true"
+  docker exec hdfs bash -c "cd hadoop-common-project && mvn -nsu -T 24 clean package install -Pdist -DskipTests -Dtar -Dmaven.javadoc.skip=true"
+  docker exec hdfs bash -c "cd hadoop-hdfs-project && mvn -nsu -T 24 clean package -Pdist -DskipTests -Dtar -Dmaven.javadoc.skip=true"
+  docker exec hdfs bash -c "cd hadoop-dist && mvn -nsu -T 24 clean package -Pdist -DskipTests -Dtar -Dmaven.javadoc.skip=true"
 esac
 
 # Build docker

@@ -4,4 +4,4 @@ hdfs ec -setPolicy -path /
 hdfs dfs -mkdir -p /user/root/test
 hdfs dfs -put "$1.random" test
 
-hdfs dfs -touch test.txt
+# hdfs dfs -touch test.txt
