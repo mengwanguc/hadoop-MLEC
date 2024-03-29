@@ -23,11 +23,13 @@ import org.apache.hadoop.hdfs.util.StripedBlockUtil;
 import org.apache.hadoop.net.Node;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 class ErasureCodingWork extends BlockReconstructionWork {
   private final byte[] liveBlockIndices;
@@ -75,6 +77,9 @@ class ErasureCodingWork extends BlockReconstructionWork {
       LOG.warn("ErasureCodingWork could not need choose targets for {}", getBlock());
     }
     setTargets(chosenTargets);
+    LOG.info("Final reconstruction target {} {}",
+            Arrays.stream(chosenTargets).collect(Collectors.toList()),
+            Arrays.stream(chosenTargets).map(info -> info.getDatanodeDescriptor().getHostName()).collect(Collectors.toList()));
   }
 
   /**

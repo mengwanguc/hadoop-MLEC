@@ -2120,6 +2120,10 @@ public class BlockManager implements BlockStatsMXBean {
     } finally {
       namesystem.writeUnlock("computeBlockReconstructionWork");
     }
+
+    if (blocksToReconstruct.stream().mapToLong(List::size).sum() != 0) {
+      LOG.info("computeBlockReconstructionWork blocksToProcess {}, blocksToReconstruct {}", blocksToProcess, blocksToReconstruct);
+    }
     return computeReconstructionWorkForBlocks(blocksToReconstruct);
   }
 
@@ -2143,6 +2147,7 @@ public class BlockManager implements BlockStatsMXBean {
         for (int priority = 0; priority < blocksToReconstruct
             .size(); priority++) {
           for (BlockInfo block : blocksToReconstruct.get(priority)) {
+            LOG.info("Calling scheduleReconstruction on block {}", block.getBlockId());
             BlockReconstructionWork rw = scheduleReconstruction(block,
                 priority);
             if (rw != null) {
@@ -2155,8 +2160,26 @@ public class BlockManager implements BlockStatsMXBean {
       namesystem.writeUnlock("computeReconstructionWorkForBlocks");
     }
 
+    for (BlockReconstructionWork work : reconWork) {
+      getBlocksPeerOf(work.getBlock().getBlockId());
+
+      LOG.info("Work {} is reading from data nodes {}",
+              work.getBlock().getBlockId(),
+              Arrays.stream(work.getSrcNodes()).map(des -> des.getHostName()).collect(Collectors.toList()));
+    }
+
     // Step 2: choose target nodes for each reconstruction task
     for (BlockReconstructionWork rw : reconWork) {
+      // Check whether rw is ZFS
+      Set<StorageType> blockStorageTypes = new HashSet<>();
+      rw.getBlock().getStorageInfos().forEachRemaining(info -> blockStorageTypes.add(info.getStorageType()));
+      if (blockStorageTypes.size() == 1 && blockStorageTypes.contains(StorageType.ZFS)) {
+        // The block is ZFS, we would need to restore it back to the same datanode that it is coming from
+        // However, we cannot directly write, because that IO pool would be suspended, the write will fail
+        // We need to instruct the writer to call a different API
+        LOG.info("The reconstruction block is ZFS");
+      }
+
       // Exclude all of the containing nodes from being targets.
       // This list includes decommissioning or corrupt nodes.
       final Set<Node> excludedNodes = new HashSet<>(rw.getContainingNodes());
@@ -4416,14 +4439,7 @@ public class BlockManager implements BlockStatsMXBean {
    * tasks, if the removed block is still valid.
    */
   public void removeStoredBlock(BlockInfo storedBlock, DatanodeDescriptor node) {
-
-    try {
-      throw new RuntimeException("Oops");
-    } catch (Exception e) {
-      blockLog.error("Calling removeStoredBlock", e);
-    }
-
-    blockLog.info("BLOCK* removeStoredBlock: {} from {} hehe", storedBlock, node);
+    blockLog.info("BLOCK* removeStoredBlock: {} from {}", storedBlock, node);
     assert (namesystem.hasWriteLock());
     {
       if (storedBlock == null || !blocksMap.removeNode(storedBlock, node)) {
@@ -4659,10 +4675,19 @@ public class BlockManager implements BlockStatsMXBean {
       case DELETED_BLOCK:
         LOG.info("Deleting block");
 
-        long collectionId = this.getStoredBlock(rdbi.getBlock()).getBlockCollectionId();
-        FSNamesystem fsNamesystem = (FSNamesystem) this.namesystem;
+        // Get the datanode that we are deleting the block from
+        LOG.info("Deleting block from data node {}", node.getHostName());
+        LOG.info("Datanode has blocks");
+        List<Long> failedBlocksIds = ZfsBlockManagement
+          .getDataNodeZfsFailedStripes(node);
 
-        LOG.info("{}", fsNamesystem.getBlockCollection(collectionId).getFullPathName());
+        // Get the file that we are deleting the block from
+        List<Block> blockPeers = getBlocksPeerOf(failedBlocksIds.get(0));
+
+        // Get the erasure coded storage policy
+        LOG.info("Block class name {}", blockPeers.get(0).getClass().getSimpleName());
+
+
         removeStoredBlock(storageInfo, rdbi.getBlock(), node);
         deleted++;
         break;
@@ -4691,6 +4716,35 @@ public class BlockManager implements BlockStatsMXBean {
               + "{} receiving: {}, received: {}, deleted: {}", node, receiving,
           received, deleted);
     }
+  }
+
+  private List<Block> getBlocksPeerOf(long blockId) {
+    Block block = new Block(blockId);
+
+    // Get the file path
+    long collectionId = this.getStoredBlock(block).getBlockCollectionId();
+    FSNamesystem fsNamesystem = (FSNamesystem) this.namesystem;
+    String fullFilePath = fsNamesystem.getBlockCollection(collectionId).getFullPathName();
+    LOG.info("File that this block belongs to {}", fullFilePath);
+
+    // Get the peer blocks of this failing block
+    LOG.info("==Block peers==");
+    BlockInfo storedBlockInfo = this.getStoredBlock(block);
+
+    List<Block> blockPeers = new ArrayList<>();
+    for (DatanodeStorageInfo replicaStorage : blocksMap.getStorages(storedBlockInfo)) {
+      Block replicaBlock = this.getBlockOnStorage(storedBlockInfo, replicaStorage);
+      LOG.info("Block peer {}-{} on datanode {}, status {}, type {}",
+              replicaStorage.getStorageType(),
+              replicaBlock.getBlockId(),
+              replicaStorage.getDatanodeDescriptor().getHostName(),
+              replicaStorage.getState(),
+              replicaStorage.getStorageType());
+
+      blockPeers.add(replicaBlock);
+    }
+
+    return blockPeers;
   }
 
   /**
@@ -4987,6 +5041,7 @@ public class BlockManager implements BlockStatsMXBean {
   /** updates a block in needed reconstruction queue. */
   private void updateNeededReconstructions(final BlockInfo block,
       final int curReplicasDelta, int expectedReplicasDelta) {
+    LOG.info("Calling updateNeededReconstructions");
     namesystem.writeLock();
     try {
       if (!isPopulatingReplQueues() || !block.isComplete()) {
@@ -5539,8 +5594,9 @@ public class BlockManager implements BlockStatsMXBean {
 
   public boolean shouldPopulateReplQueues() {
     HAContext haContext = namesystem.getHAContext();
-    if (haContext == null || haContext.getState() == null)
+    if (haContext == null || haContext.getState() == null) {
       return false;
+    }
     return haContext.getState().shouldPopulateReplQueues();
   }
 
