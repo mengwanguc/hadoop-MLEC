@@ -19,11 +19,20 @@ services:
 
   datanode:
     image: hdfs-runtime:latest
+    privileged: true
     restart: always
     volumes:
       - ./core-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/core-site.xml
       - ./hdfs-site.xml:/opt/hadoop-3.5.0-SNAPSHOT/etc/hadoop/hdfs-site.xml
       - ./rack-topo.sh:/opt/rack-topo.sh
+      - type: tmpfs
+        target: /data/tmpfs1
+        tmpfs:
+          size: 104857600
+      - type: tmpfs
+        target: /data/tmpfs2
+        tmpfs:
+          size: 104857600
     entrypoint: bash datanode-entrypoint.sh
     networks:
       - intra

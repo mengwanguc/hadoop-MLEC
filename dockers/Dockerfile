@@ -3,6 +3,7 @@
 FROM eclipse-temurin:11-alpine
 
 # Arguments
+ARG CURRENT_USER=aaronmao
 ARG VERSION=3.5.0
 ARG HADOOP_NAME=hadoop-$VERSION-SNAPSHOT
 
@@ -28,7 +29,8 @@ COPY ./dockers/seed_test.sh /opt/seed_test.sh
 RUN chmod +x /opt/seed_test.sh
 
 # Create a data directory for HDFS, we will point to this directory in config
-RUN mkdir -p /data/dataNode
+RUN mkdir -p /data/dataNode1
+RUN mkdir -p /data/dataNode2
 RUN mkdir -p /data/nameNode
 
 # bash is the preferred shell
@@ -42,10 +44,10 @@ RUN rc-status \
 
 # Configure key based ssh
 RUN mkdir ~/.ssh
-COPY ./dockers/hadoop-id-rsa /root/.ssh/id_rsa
-COPY ./dockers/hadoop-id-rsa.pub /root/.ssh/id_rsa.pub
-COPY ./dockers/hadoop-id-rsa.pub /root/.ssh/authorized_keys
-COPY ./dockers/hadoop-ssh-config /root/.ssh/config
+COPY ./dockers/hadoop-id-rsa /home/${CURRENT_USER}/.ssh/id_rsa
+COPY ./dockers/hadoop-id-rsa.pub /home/${CURRENT_USER}/.ssh/id_rsa.pub
+COPY ./dockers/hadoop-id-rsa.pub /home/${CURRENT_USER}/.ssh/authorized_keys
+COPY ./dockers/hadoop-ssh-config /home/${CURRENT_USER}/.ssh/config
 
 # Configure ENV variables
 ENV HADOOP_HOME=/opt/$HADOOP_NAME
