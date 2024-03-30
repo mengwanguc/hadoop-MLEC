@@ -497,6 +497,9 @@ public class BlockManager implements BlockStatsMXBean {
    */
   private long excessRedundancyTimeoutCheckLimit;
 
+  // MLEC Stuff
+  private ZfsBlockManagement zfsBlockMgr;
+
   public BlockManager(final Namesystem namesystem, boolean haEnabled,
       final Configuration conf) throws IOException {
     this.namesystem = namesystem;
@@ -609,6 +612,8 @@ public class BlockManager implements BlockStatsMXBean {
     setExcessRedundancyTimeoutCheckLimit(conf.getLong(
         DFS_NAMENODE_EXCESS_REDUNDANCY_TIMEOUT_CHECK_LIMIT,
         DFS_NAMENODE_EXCESS_REDUNDANCY_TIMEOUT_CHECK_LIMIT_DEFAULT));
+
+    this.zfsBlockMgr = new ZfsBlockManagement();
 
     printInitialConfigs();
   }
@@ -2160,44 +2165,57 @@ public class BlockManager implements BlockStatsMXBean {
       namesystem.writeUnlock("computeReconstructionWorkForBlocks");
     }
 
-    for (BlockReconstructionWork work : reconWork) {
-      getBlocksPeerOf(work.getBlock().getBlockId());
-
-      LOG.info("Work {} is reading from data nodes {}",
-              work.getBlock().getBlockId(),
-              Arrays.stream(work.getSrcNodes()).map(des -> des.getHostName()).collect(Collectors.toList()));
-    }
-
     // Step 2: choose target nodes for each reconstruction task
     for (BlockReconstructionWork rw : reconWork) {
+      List<DatanodeStorageInfo> failCause = this.zfsBlockMgr.blockFailureSources.get(rw.getBlock().getBlockId());
+
+
+      try {
+        LOG.info("Block {} failed because of {} on hosts {}",
+                rw.getBlock().getBlockId(),
+                failCause.stream().map(DatanodeStorageInfo::getStorageID).collect(Collectors.toList()),
+                failCause.stream().map(info -> info.getDatanodeDescriptor().getHostName()).collect(Collectors.toList()));
+      } catch (RuntimeException e) {
+        // Silence it
+      }
+
+      LOG.info("Work {} is reading from data nodes {}",
+              rw.getBlock().getBlockId(),
+              Arrays.stream(rw.getSrcNodes()).map(des -> des.getHostName()).collect(Collectors.toList()));
+
       // Check whether rw is ZFS
       Set<StorageType> blockStorageTypes = new HashSet<>();
       rw.getBlock().getStorageInfos().forEachRemaining(info -> blockStorageTypes.add(info.getStorageType()));
-      if (blockStorageTypes.size() == 1 && blockStorageTypes.contains(StorageType.ZFS)) {
-        // The block is ZFS, we would need to restore it back to the same datanode that it is coming from
-        // However, we cannot directly write, because that IO pool would be suspended, the write will fail
-        // We need to instruct the writer to call a different API
-        LOG.info("The reconstruction block is ZFS");
-      }
+      // if (blockStorageTypes.size() == 1 && blockStorageTypes.contains(StorageType.ZFS)) {
+      //   // The block is ZFS, we would need to restore it back to the same datanode that it is coming from
+      //   // However, we cannot directly write, because that IO pool would be suspended, the write will fail
+      //   // We need to instruct the writer to call a different API
+      //   LOG.info("The reconstruction block is ZFS, writing back to origin datanode {}",
+      //           failCause.stream().map(info -> info.getDatanodeDescriptor().getHostName()).collect(Collectors.toList()));
+      //   DatanodeStorageInfo[] failCauseArr =
+      //           new DatanodeStorageInfo[failCause.size()];
+      //   failCause.toArray(failCauseArr);
+      //   rw.setTargets(failCauseArr);
+      // } else {
+        // Exclude all of the containing nodes from being targets.
+        // This list includes decommissioning or corrupt nodes.
+        final Set<Node> excludedNodes = new HashSet<>(rw.getContainingNodes());
 
-      // Exclude all of the containing nodes from being targets.
-      // This list includes decommissioning or corrupt nodes.
-      final Set<Node> excludedNodes = new HashSet<>(rw.getContainingNodes());
-
-      // Exclude all nodes which already exists as targets for the block
-      List<DatanodeStorageInfo> targets =
-          pendingReconstruction.getTargets(rw.getBlock());
-      if (targets != null) {
-        for (DatanodeStorageInfo dn : targets) {
-          excludedNodes.add(dn.getDatanodeDescriptor());
+        // Exclude all nodes which already exists as targets for the block
+        List<DatanodeStorageInfo> targets =
+                pendingReconstruction.getTargets(rw.getBlock());
+        if (targets != null) {
+          for (DatanodeStorageInfo dn : targets) {
+            excludedNodes.add(dn.getDatanodeDescriptor());
+          }
         }
-      }
 
-      // choose replication targets: NOT HOLDING THE GLOBAL LOCK
-      final BlockPlacementPolicy placementPolicy =
-          placementPolicies.getPolicy(rw.getBlock().getBlockType());
-      rw.chooseTargets(placementPolicy, storagePolicySuite, excludedNodes);
-    }
+        // choose replication targets: NOT HOLDING THE GLOBAL LOCK
+        final BlockPlacementPolicy placementPolicy =
+                placementPolicies.getPolicy(rw.getBlock().getBlockType());
+        rw.chooseTargets(placementPolicy, storagePolicySuite, excludedNodes);
+      }
+    // }
 
     // Step 3: add tasks to the DN
     namesystem.writeLock();
@@ -4684,9 +4702,11 @@ public class BlockManager implements BlockStatsMXBean {
         // Get the file that we are deleting the block from
         List<Block> blockPeers = getBlocksPeerOf(failedBlocksIds.get(0));
 
-        // Get the erasure coded storage policy
-        LOG.info("Block class name {}", blockPeers.get(0).getClass().getSimpleName());
-
+        // Keep track of failure cause
+        List<DatanodeStorageInfo> failureCause =
+                this.zfsBlockMgr.blockFailureSources.getOrDefault(rdbi.getBlock().getBlockId(), new ArrayList<>());
+        failureCause.add(new DatanodeStorageInfo(node, srdb.getStorage()));
+        this.zfsBlockMgr.blockFailureSources.put(rdbi.getBlock().getBlockId(), failureCause);
 
         removeStoredBlock(storageInfo, rdbi.getBlock(), node);
         deleted++;

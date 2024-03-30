@@ -1,22 +1,26 @@
 package org.apache.hadoop.hdfs.server.blockmanagement;
 
-import org.apache.hadoop.hdfs.protocol.BlockListAsLongs;
-import org.apache.hadoop.hdfs.server.datanode.DataNode;
-import org.apache.hadoop.hdfs.server.namenode.Namesystem;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeStorage;
-import org.apache.hadoop.hdfs.server.zfs.common.ZfsFailureTuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ZfsBlockManagement {
 
     public static final Logger LOG = LoggerFactory.getLogger(ZfsBlockManagement.class.getName());
+
+    // What datanode storage "failure" contributed to the block failure
+    // "failure" does not mean data storage failure, it just mean that block cannot be r/w/found for some reason
+    public Map<Long, List<DatanodeStorageInfo>> blockFailureSources;
+
+    public ZfsBlockManagement() {
+        this.blockFailureSources = new HashMap<>();
+    }
+
 
     // This is for R_min
     public List<ZfsFailureTuple> getDataNodeZfsFailureTuples(DatanodeDescriptor datanode) {

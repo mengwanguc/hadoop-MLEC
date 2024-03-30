@@ -805,6 +805,7 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
    * Get File name for a given block.
    */
   ReplicaInfo getBlockReplica(String bpid, long blockId) throws IOException {
+    LOG.info("Validating block file");
     ReplicaInfo r = validateBlockFile(bpid, blockId);
     if (r == null) {
       throw new FileNotFoundException("BlockId " + blockId + " is not valid.");

@@ -187,9 +187,12 @@ public class DiskChecker {
    * @return true on success, false on failure
    */
   private static boolean mkdirsWithExistsCheck(File dir) {
+    LOG.info("mkdirsWithExistsCheck checking {}", dir.getAbsolutePath());
+    // NOTE: We don't want to check mkdir for now, short circuit if not exists (we manually delete)
     if (dir.mkdir() || dir.exists()) {
       return true;
     }
+
     File canonDir;
     try {
       canonDir = dir.getCanonicalFile();

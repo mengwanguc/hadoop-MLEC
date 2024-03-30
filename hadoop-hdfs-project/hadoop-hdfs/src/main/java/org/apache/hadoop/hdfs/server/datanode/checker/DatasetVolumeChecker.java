@@ -286,9 +286,13 @@ public class DatasetVolumeChecker {
   public boolean checkVolume(
       final FsVolumeSpi volume,
       Callback callback) {
+
     if (volume == null) {
-      LOG.debug("Cannot schedule check on null volume");
+      LOG.info("Cannot schedule check on null volume");
       return false;
+    } else {
+      LOG.info("DatasetVolumeChecker.checkVolume called on {}",
+        volume.getClass().getSimpleName());
     }
 
     FsVolumeReference volumeReference;
@@ -296,12 +300,15 @@ public class DatasetVolumeChecker {
       volumeReference = volume.obtainReference();
     } catch (ClosedChannelException e) {
       // The volume has already been closed.
+      LOG.info("Volume channel already closed");
       return false;
     }
 
     Optional<ListenableFuture<VolumeCheckResult>> olf =
         delegateChecker.schedule(volume, IGNORED_CONTEXT);
     if (olf.isPresent()) {
+      LOG.info("deletegateChecker.schedule(volume) called on {}",
+        volume.getClass().getSimpleName());
       numVolumeChecks.incrementAndGet();
       Futures.addCallback(olf.get(),
           new ResultHandler(volumeReference, new HashSet<>(), new HashSet<>(),
@@ -310,6 +317,7 @@ public class DatasetVolumeChecker {
       );
       return true;
     } else {
+      LOG.info("olf not present");
       IOUtils.cleanupWithLogger(null, volumeReference);
     }
     return false;

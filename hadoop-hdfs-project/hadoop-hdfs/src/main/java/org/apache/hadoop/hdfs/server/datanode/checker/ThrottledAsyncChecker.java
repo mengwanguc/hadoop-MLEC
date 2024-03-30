@@ -120,6 +120,7 @@ public class ThrottledAsyncChecker<K, V> implements AsyncChecker<K, V> {
   public synchronized Optional<ListenableFuture<V>> schedule(
       Checkable<K, V> target, K context) {
     if (checksInProgress.containsKey(target)) {
+      LOG.info("Check in progress is empty");
       return Optional.empty();
     }
 
@@ -127,7 +128,7 @@ public class ThrottledAsyncChecker<K, V> implements AsyncChecker<K, V> {
     if (result != null) {
       final long msSinceLastCheck = timer.monotonicNow() - result.completedAt;
       if (msSinceLastCheck < minMsBetweenChecks) {
-        LOG.debug("Skipped checking {}. Time since last check {}ms " +
+        LOG.info("Skipped checking {}. Time since last check {}ms " +
                 "is less than the min gap {}ms.",
             target, msSinceLastCheck, minMsBetweenChecks);
         return Optional.empty();

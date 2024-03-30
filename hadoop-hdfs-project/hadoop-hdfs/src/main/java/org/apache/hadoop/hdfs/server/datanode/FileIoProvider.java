@@ -1018,6 +1018,7 @@ public class FileIoProvider {
         profilingEventHook.afterFileIo(volume, READ, begin, numBytesRead);
         return numBytesRead;
       } catch(Exception e) {
+        LOG.error("READ USING FileIoProvider FAILED!");
         onFailure(volume, begin);
         throw e;
       }

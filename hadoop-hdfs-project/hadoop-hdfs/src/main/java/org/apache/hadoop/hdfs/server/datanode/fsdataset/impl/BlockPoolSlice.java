@@ -483,6 +483,14 @@ public class BlockPoolSlice {
   }
 
   void checkDirs() throws DiskErrorException {
+    LOG.info("Checking dir for volume with path {} {}", 
+      this.volume.getBaseURI().getPath(),
+      new File(this.volume.getBaseURI().getPath()).exists());
+      
+    if (!new File(this.volume.getBaseURI().getPath()).exists()) {
+      // If the base volume path not found, we throw exception
+      throw new DiskErrorException("Base volume path " + this.volume.getBaseURI().getPath() + " no longer exists");
+    }
     DiskChecker.checkDir(finalizedDir);
     DiskChecker.checkDir(tmpDir);
     DiskChecker.checkDir(rbwDir);

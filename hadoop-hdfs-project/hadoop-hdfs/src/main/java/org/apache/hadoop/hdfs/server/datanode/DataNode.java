@@ -2700,6 +2700,7 @@ public class DataNode extends ReconfigurableBase
    * and if so, handle the error.
    */
   public void checkDiskErrorAsync(FsVolumeSpi volume) {
+    LOG.info("checkDiskErrorAsync run");
     volumeChecker.checkVolume(
         volume, (healthyVolumes, failedVolumes) -> {
           if (failedVolumes.size() > 0) {

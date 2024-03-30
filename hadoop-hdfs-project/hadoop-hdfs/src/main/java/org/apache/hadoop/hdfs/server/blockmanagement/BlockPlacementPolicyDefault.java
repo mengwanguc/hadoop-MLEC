@@ -476,7 +476,7 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
     // Keep a copy of original excludedNodes
     final Set<Node> oldExcludedNodes = new HashSet<>(excludedNodes);
 
-    LOG.info("Storage type available {}", storageTypes);
+    LOG.debug("Storage type available {}", storageTypes);
     // choose storage types; use fallbacks for unavailable storages
     final List<StorageType> requiredStorageTypes = storagePolicy
         .chooseStorageTypes((short) totalReplicasExpected,
@@ -840,8 +840,8 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
       builder.setLength(0);
       builder.append("[");
     }
-    LOG.info("Selecting {} out of scope {}. Result size currently {}", numOfReplicas, scope, results.size());
-    LOG.info("Storage types {}", storageTypes);
+    LOG.debug("Selecting {} of {} out of scope {}. Result size currently {}",
+            numOfReplicas, storageTypes, scope, results.size());
     CHOOSE_RANDOM_REASONS.get().clear();
     boolean badTarget = false;
     DatanodeStorageInfo firstChosen = null;

@@ -1068,7 +1068,9 @@ public class FsVolumeImpl implements FsVolumeSpi {
   public VolumeCheckResult check(VolumeCheckContext ignored)
       throws DiskErrorException {
     // TODO:FEDERATION valid synchronization
+    LOG.info("FsVolumeImpl check() called on {}", this.getCurrentDir());
     for (BlockPoolSlice s : bpSlices.values()) {
+      LOG.info("FsVolumeImpl checking slice at {}", s.getDirectory().getAbsolutePath());
       s.checkDirs();
     }
     return VolumeCheckResult.HEALTHY;
