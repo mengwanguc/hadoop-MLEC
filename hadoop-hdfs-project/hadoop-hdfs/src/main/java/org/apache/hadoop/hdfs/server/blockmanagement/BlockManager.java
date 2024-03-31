@@ -2167,14 +2167,13 @@ public class BlockManager implements BlockStatsMXBean {
 
     // Step 2: choose target nodes for each reconstruction task
     for (BlockReconstructionWork rw : reconWork) {
-      List<DatanodeStorageInfo> failCause = this.zfsBlockMgr.blockFailureSources.get(rw.getBlock().getBlockId());
-
+      List<ZfsFailureTuple> failCause = this.zfsBlockMgr.blockFailureSources.get(rw.getBlock().getBlockId());
 
       try {
         LOG.info("Block {} failed because of {} on hosts {}",
                 rw.getBlock().getBlockId(),
-                failCause.stream().map(DatanodeStorageInfo::getStorageID).collect(Collectors.toList()),
-                failCause.stream().map(info -> info.getDatanodeDescriptor().getHostName()).collect(Collectors.toList()));
+                failCause.stream().map(tuple -> tuple.getDatanodeStorageInfo().getStorageID()).collect(Collectors.toList()),
+                failCause.stream().map(tuple -> tuple.getDatanodeStorageInfo().getDatanodeDescriptor().getHostName()).collect(Collectors.toList()));
       } catch (RuntimeException e) {
         // Silence it
       }
@@ -4696,16 +4695,17 @@ public class BlockManager implements BlockStatsMXBean {
         // Get the datanode that we are deleting the block from
         LOG.info("Deleting block from data node {}", node.getHostName());
         LOG.info("Datanode has blocks");
-        List<Long> failedBlocksIds = ZfsBlockManagement
+        List<ZfsFailureTuple> failedBlocksIds = ZfsBlockManagement
           .getDataNodeZfsFailedStripes(node);
 
         // Get the file that we are deleting the block from
-        List<Block> blockPeers = getBlocksPeerOf(failedBlocksIds.get(0));
+        List<Block> blockPeers = getBlocksPeerOf(failedBlocksIds.get(0).getFailedBlock());
 
         // Keep track of failure cause
-        List<DatanodeStorageInfo> failureCause =
+        List<ZfsFailureTuple> failureCause =
                 this.zfsBlockMgr.blockFailureSources.getOrDefault(rdbi.getBlock().getBlockId(), new ArrayList<>());
-        failureCause.add(new DatanodeStorageInfo(node, srdb.getStorage()));
+        failedBlocksIds.get(0).setDatanodeStorageInfo(new DatanodeStorageInfo(node, srdb.getStorage()));
+        failureCause.add(failedBlocksIds.get(0));
         this.zfsBlockMgr.blockFailureSources.put(rdbi.getBlock().getBlockId(), failureCause);
 
         removeStoredBlock(storageInfo, rdbi.getBlock(), node);

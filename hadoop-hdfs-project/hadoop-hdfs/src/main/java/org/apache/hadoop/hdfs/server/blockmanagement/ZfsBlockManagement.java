@@ -15,7 +15,7 @@ public class ZfsBlockManagement {
 
     // What datanode storage "failure" contributed to the block failure
     // "failure" does not mean data storage failure, it just mean that block cannot be r/w/found for some reason
-    public Map<Long, List<DatanodeStorageInfo>> blockFailureSources;
+    public Map<Long, List<ZfsFailureTuple>> blockFailureSources;
 
     public ZfsBlockManagement() {
         this.blockFailureSources = new HashMap<>();
@@ -36,7 +36,7 @@ public class ZfsBlockManagement {
      * @param datanode the data node to look for.
      * @return list of bloc info.
      */
-    public static List<Long> getDataNodeZfsFailedStripes(DatanodeDescriptor datanode) {
+    public static List<ZfsFailureTuple> getDataNodeZfsFailedStripes(DatanodeDescriptor datanode) {
 
         // Randomly select a block sitting on the datanode
         // Map<DatanodeStorage, BlockListAsLongs> report = datanode.getFSDataset().getBlockReports(blockPoolId);
@@ -49,9 +49,9 @@ public class ZfsBlockManagement {
         });
         
         // Always mark the first one as failed
-        // TODO: return the first block on the datanode as failed
-        return Collections.singletonList(failedBlocks.get(0));
-        // return failedBlocks;
+        // TODO: return the first block on the datanode as failed, 2+1, so the second data chunk failed
+        return Collections.singletonList(new ZfsFailureTuple(
+                failedBlocks.get(0), Collections.singletonList(1)));
     }
 
 }
