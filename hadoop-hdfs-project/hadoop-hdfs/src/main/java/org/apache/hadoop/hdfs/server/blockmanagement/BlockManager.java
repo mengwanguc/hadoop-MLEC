@@ -2185,17 +2185,22 @@ public class BlockManager implements BlockStatsMXBean {
       // Check whether rw is ZFS
       Set<StorageType> blockStorageTypes = new HashSet<>();
       rw.getBlock().getStorageInfos().forEachRemaining(info -> blockStorageTypes.add(info.getStorageType()));
-      // if (blockStorageTypes.size() == 1 && blockStorageTypes.contains(StorageType.ZFS)) {
-      //   // The block is ZFS, we would need to restore it back to the same datanode that it is coming from
-      //   // However, we cannot directly write, because that IO pool would be suspended, the write will fail
-      //   // We need to instruct the writer to call a different API
-      //   LOG.info("The reconstruction block is ZFS, writing back to origin datanode {}",
-      //           failCause.stream().map(info -> info.getDatanodeDescriptor().getHostName()).collect(Collectors.toList()));
-      //   DatanodeStorageInfo[] failCauseArr =
-      //           new DatanodeStorageInfo[failCause.size()];
-      //   failCause.toArray(failCauseArr);
-      //   rw.setTargets(failCauseArr);
-      // } else {
+      if (blockStorageTypes.size() == 1 && blockStorageTypes.contains(StorageType.ZFS)) {
+        // The block is ZFS, we would need to restore it back to the same datanode that it is coming from
+        // However, we cannot directly write, because that IO pool would be suspended, the write will fail
+        // We need to instruct the writer to call a different API
+        LOG.info("The reconstruction block is ZFS, writing back to origin datanode {}",
+                failCause.stream()
+                        .map(failTuple -> failTuple.getDatanodeStorageInfo().getDatanodeDescriptor().getHostName())
+                        .collect(Collectors.toList()));
+        DatanodeStorageInfo[] failCauseArr =
+                new DatanodeStorageInfo[failCause.size()];
+        failCause.stream()
+                .map(ZfsFailureTuple::getDatanodeStorageInfo)
+                .collect(Collectors.toList())
+                .toArray(failCauseArr);
+        rw.setTargets(failCauseArr);
+      } else {
         // Exclude all of the containing nodes from being targets.
         // This list includes decommissioning or corrupt nodes.
         final Set<Node> excludedNodes = new HashSet<>(rw.getContainingNodes());
@@ -2214,7 +2219,7 @@ public class BlockManager implements BlockStatsMXBean {
                 placementPolicies.getPolicy(rw.getBlock().getBlockType());
         rw.chooseTargets(placementPolicy, storagePolicySuite, excludedNodes);
       }
-    // }
+    }
 
     // Step 3: add tasks to the DN
     namesystem.writeLock();
@@ -2226,6 +2231,8 @@ public class BlockManager implements BlockStatsMXBean {
           continue;
         }
 
+        LOG.info("Adding reconstruction task to DN {}", Arrays.stream(rw.getTargets())
+                .map(i -> i.getDatanodeDescriptor().getHostName()).collect(Collectors.toList()));
         synchronized (neededReconstruction) {
           if (validateReconstructionWork(rw)) {
             scheduledWork++;

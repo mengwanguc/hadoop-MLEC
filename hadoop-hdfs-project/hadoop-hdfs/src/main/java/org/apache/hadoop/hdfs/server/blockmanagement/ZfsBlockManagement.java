@@ -3,6 +3,7 @@ package org.apache.hadoop.hdfs.server.blockmanagement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,6 +29,10 @@ public class ZfsBlockManagement {
         // TODO: Dummy implementation
 
         return null;
+    }
+
+    public static void writeToZfs(OutputStream os) {
+        // Do nothing.
     }
 
     /**
