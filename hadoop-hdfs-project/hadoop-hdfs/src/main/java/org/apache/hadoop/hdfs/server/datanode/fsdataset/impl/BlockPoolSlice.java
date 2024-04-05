@@ -488,10 +488,13 @@ public class BlockPoolSlice {
       new File(this.volume.getBaseURI().getPath()).exists());
 
     // Note: enable this check will result in volume marked as failed when we delete the volume directory using rm -r
-    // if (!new File(this.volume.getBaseURI().getPath()).exists()) {
-    //   // If the base volume path not found, we throw exception
-    //   throw new DiskErrorException("Base volume path " + this.volume.getBaseURI().getPath() + " no longer exists");
-    // }
+    // -----------------------
+    if (!new File(this.volume.getBaseURI().getPath()).exists()) {
+      // If the base volume path not found, we throw exception
+      throw new DiskErrorException("Base volume path " + this.volume.getBaseURI().getPath() + " no longer exists");
+    }
+    // ------------------------
+
     DiskChecker.checkDir(finalizedDir);
     DiskChecker.checkDir(tmpDir);
     DiskChecker.checkDir(rbwDir);

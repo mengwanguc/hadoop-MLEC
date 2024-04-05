@@ -36,6 +36,8 @@ import org.apache.hadoop.io.ElasticByteBufferPool;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.token.Token;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -54,6 +56,7 @@ import java.util.EnumSet;
  */
 @InterfaceAudience.Private
 class StripedBlockWriter {
+  public static Logger LOG = LoggerFactory.getLogger(StripedBlockWriter.class);
   private final StripedWriter stripedWriter;
   private final DataNode datanode;
   private final Configuration conf;
@@ -138,6 +141,8 @@ class StripedBlockWriter {
 
       DatanodeInfo source = new DatanodeInfoBuilder()
           .setNodeID(datanode.getDatanodeId()).build();
+      LOG.info("Sending block {}-[{}] to target {}", block.getBlockId(),
+          storageType, target.getHostName());
       new Sender(out).writeBlock(block, storageType,
           blockToken, "", new DatanodeInfo[]{target},
           new StorageType[]{storageType}, source,

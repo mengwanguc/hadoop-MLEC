@@ -707,8 +707,8 @@ public class DatanodeDescriptor extends DatanodeInfo {
     BlockECReconstructionInfo task = new BlockECReconstructionInfo(block,
         sources, targets, liveBlockIndices, excludeReconstrutedIndices, ecPolicy);
     ecBlocksToBeErasureCoded.offer(task);
-    BlockManager.LOG.debug("Adding block reconstruction task " + task + "to "
-        + getName() + ", current queue size is " + ecBlocksToBeErasureCoded.size());
+    BlockManager.LOG.info("Adding block reconstruction task " + task + " to "
+        + getHostName() + ", current queue size is " + ecBlocksToBeErasureCoded.size());
   }
 
   /**

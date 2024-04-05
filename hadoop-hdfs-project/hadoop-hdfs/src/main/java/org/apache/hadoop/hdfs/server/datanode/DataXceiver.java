@@ -757,7 +757,7 @@ class DataXceiver extends Receiver implements Runnable {
       block.setNumBytes(dataXceiverServer.estimateBlockSize);
     }
     LOG.info("Receiving {} src: {} dest: {}",
-        block, remoteAddress, localAddress);
+        block, srcDataNode.getHostName(), this.datanode.getDatanodeHostname());
 
     DataOutputStream mirrorOut = null;  // stream to next target
     DataInputStream mirrorIn = null;    // reply from next target

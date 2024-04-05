@@ -183,6 +183,7 @@ public class BlockReaderRemote implements BlockReader {
   }
 
   private void readNextPacket() throws IOException {
+    LOG.info("BlockReaderRemote::readNextPacket() called");
     //Read packet headers.
     packetReceiver.receiveNextPacket(in);
 
@@ -190,7 +191,7 @@ public class BlockReaderRemote implements BlockReader {
     curDataSlice = packetReceiver.getDataSlice();
     assert curDataSlice.capacity() == curHeader.getDataLen();
 
-    LOG.trace("DFSClient readNextPacket got header {}", curHeader);
+    LOG.info("DFSClient readNextPacket got header {}", curHeader);
 
     // Sanity check the lengths
     if (!curHeader.sanityCheck(lastSeqNo)) {
@@ -201,7 +202,7 @@ public class BlockReaderRemote implements BlockReader {
     if (curHeader.getDataLen() > 0) {
       int chunks = 1 + (curHeader.getDataLen() - 1) / bytesPerChecksum;
       int checksumsLen = chunks * checksumSize;
-
+      
       assert packetReceiver.getChecksumSlice().capacity() == checksumsLen :
           "checksum slice capacity=" +
               packetReceiver.getChecksumSlice().capacity() +

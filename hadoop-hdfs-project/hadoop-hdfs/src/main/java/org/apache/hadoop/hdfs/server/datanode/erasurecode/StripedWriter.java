@@ -185,13 +185,16 @@ class StripedWriter {
     int nSuccess = 0;
     for (short i = 0; i < targets.length; i++) {
       try {
+        LOG.info("Creating writier {}", i);
         writers[i] = createWriter(i);
         nSuccess++;
         targetsStatus[i] = true;
       } catch (Throwable e) {
+        LOG.warn("Something went wrong during createWriter()");
         LOG.warn(e.getMessage());
       }
     }
+    LOG.info("Total target lengths {}, number success {}", targets.length, nSuccess);
     return nSuccess;
   }
 

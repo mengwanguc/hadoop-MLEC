@@ -126,7 +126,7 @@ public final class ErasureCodingWorker {
     for (BlockECReconstructionInfo reconInfo : ecTasks) {
       try {
         final String targetDataNodesStr = Arrays.stream(reconInfo.getTargetDnInfos())
-                .map(DatanodeInfo::getName)
+                .map(DatanodeInfo::getHostName)
                 .collect(Collectors.joining(","));
         // Log what we are reconstructing here
         LOG.warn("====Trying to start a reconstruction task====\n"

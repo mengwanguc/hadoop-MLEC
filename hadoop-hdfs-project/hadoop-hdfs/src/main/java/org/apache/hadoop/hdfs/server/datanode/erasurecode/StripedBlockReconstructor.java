@@ -53,15 +53,23 @@ class StripedBlockReconstructor extends StripedReconstructor
   @Override
   public void run() {
     try {
+      LOG.info("Initializing decoder");
       initDecoderIfNecessary();
 
+      LOG.info("Initializing decoder validator");
       initDecodingValidatorIfNecessary();
 
       getStripedReader().init();
-
+      LOG.info("Got stripe reader");
+      
+      // Note, this step will try to create temporary directory on all the datanode
+      // This is what is throwing the DiskOutOfSpaceException 
       stripedWriter.init();
+      LOG.info("Initialized stripe writer");
+      Thread.sleep(15000);
 
       reconstruct();
+      LOG.info("Reconstructed");
 
       stripedWriter.endTargetBlocks();
 
@@ -90,7 +98,10 @@ class StripedBlockReconstructor extends StripedReconstructor
   @Override
   void reconstruct() throws IOException {
     long loopStart = Time.monotonicNow();
-    LOG.warn("Reconstruction started at {}", Instant.ofEpochMilli(Time.now()).toString());
+    LOG.warn("Reconstruction started at {} at pos {} and len {}",
+            Instant.ofEpochMilli(Time.now()).toString(),
+            getPositionInBlock(),
+            getMaxTargetLength());
     long bytesRead = 0;
     long bytesTransferred = 0;
 
@@ -108,7 +119,9 @@ class StripedBlockReconstructor extends StripedReconstructor
       }
       // step1: read from minimum source DNs required for reconstruction.
       // The returned success list is the source DNs we do real read from
+      LOG.info("Read total of {} bytes as sources", toReconstructLen);
       getStripedReader().readMinimumSources(toReconstructLen);
+      LOG.info("Reading complete");
       long readEnd = Time.monotonicNow();
 
       // step2: decode to reconstruct targets
@@ -121,6 +134,9 @@ class StripedBlockReconstructor extends StripedReconstructor
       if (getDatanode().getEcReconstuctWriteThrottler() != null) {
         getDatanode().getEcReconstuctWriteThrottler().throttle(bytesToWrite);
       }
+
+
+      LOG.info("Starting transfer of {} bytes to target datanode", bytesToWrite);
       if (stripedWriter.transferData2Targets() == 0) {
         String error = "Transfer failed for all targets.";
         throw new IOException(error);

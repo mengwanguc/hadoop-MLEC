@@ -166,11 +166,13 @@ class StripedBlockReader {
 
   Callable<BlockReadStats> readFromBlock(final int length,
                                final CorruptedBlocks corruptedBlocks) {
+    LOG.info("Getting readFromBlock callable");
     return new Callable<BlockReadStats>() {
 
       @Override
       public BlockReadStats call() throws Exception {
         try {
+          LOG.info("Starting to read length {} from block {}", length, block.getBlockId());
           getReadBuffer().limit(length);
           return actualReadFromBlock();
         } catch (ChecksumException e) {

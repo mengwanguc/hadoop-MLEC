@@ -18,6 +18,7 @@
 package org.apache.hadoop.hdfs.server.blockmanagement;
 
 import org.apache.hadoop.hdfs.protocol.Block;
+import org.apache.hadoop.hdfs.protocol.DatanodeID;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.util.StripedBlockUtil;
 import org.apache.hadoop.net.Node;
@@ -161,6 +162,9 @@ class ErasureCodingWork extends BlockReconstructionWork {
         createReplicationWork(leavingServiceSources.get(i), targets[i]);
       }
     } else {
+      LOG.info("ErasureCodeWork::addTaskToDatanode added for {} with src nodes {}",
+              targets[0].getDatanodeDescriptor().getHostName(),
+              Arrays.stream(getSrcNodes()).map(DatanodeID::getHostName).collect(Collectors.toList()));
       targets[0].getDatanodeDescriptor().addBlockToBeErasureCoded(
           new ExtendedBlock(blockPoolId, stripedBlk), getSrcNodes(), targets,
           liveBlockIndices, excludeReconstructedIndices, stripedBlk.getErasureCodingPolicy());

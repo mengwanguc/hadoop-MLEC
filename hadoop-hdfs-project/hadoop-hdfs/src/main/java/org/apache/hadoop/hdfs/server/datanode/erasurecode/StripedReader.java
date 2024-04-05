@@ -168,7 +168,7 @@ class StripedReader {
   StripedBlockReader createReader(int idxInSources, long offsetInBlock) {
     return new StripedBlockReader(this, datanode,
         conf, liveIndices[idxInSources],
-        reconstructor.getBlock(liveIndices[idxInSources]),
+        reconstructor.getBlock(liveIndices[idxInSources]), 
         sources[idxInSources], offsetInBlock);
   }
 
@@ -281,7 +281,7 @@ class StripedReader {
         reconstructLength <= bufferSize);
     int nSuccess = 0;
     int[] newSuccess = new int[minRequiredSources];
-    BitSet usedFlag = new BitSet(sources.length);
+    BitSet usedFlag = new BitSet(sources.length); 
     /*
      * Read from minimum source DNs required, the success list contains
      * source DNs which we think best.
@@ -290,6 +290,8 @@ class StripedReader {
       StripedBlockReader reader = readers.get(successList[i]);
       int toRead = getReadLength(liveIndices[successList[i]],
           reconstructLength);
+      LOG.info("Scheduling a read using reader {} at index {} with readLen {}", 
+        reader.getClass().getSimpleName(), i, toRead); 
       if (toRead > 0) {
         Callable<BlockReadStats> readCallable =
             reader.readFromBlock(toRead, corruptedBlocks);
@@ -303,6 +305,7 @@ class StripedReader {
       usedFlag.set(successList[i]);
     }
 
+    LOG.info("Scheduled all read, getting futures");
     while (!futures.isEmpty()) {
       try {
         StripingChunkReadResult result =
