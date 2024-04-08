@@ -30,6 +30,8 @@ import org.apache.hadoop.hdfs.protocol.datatransfer.PacketHeader;
 import org.apache.hadoop.hdfs.util.ByteArrayManager;
 import org.apache.hadoop.tracing.Span;
 import org.apache.hadoop.tracing.SpanContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /****************************************************************
  * DFSPacket is used by DataStreamer and DFSOutputStream.
@@ -39,6 +41,7 @@ import org.apache.hadoop.tracing.SpanContext;
 
 @InterfaceAudience.Private
 public class DFSPacket {
+  public static Logger LOG = LoggerFactory.getLogger(DFSPacket.class);
   public static final long HEART_BEAT_SEQNO = -1L;
   private static final SpanContext[] EMPTY = new SpanContext[0];
   private final long seqno; // sequence number of buffer in block
@@ -189,6 +192,7 @@ public class DFSPacket {
           0xff;
     }
 
+    LOG.info("Writing total of {} bytes to outputstream", header.getSerializedSize() + checksumLen + dataLen);
     // Write the now contiguous full packet to the output stream.
     stm.write(buf, headerStart,
         header.getSerializedSize() + checksumLen + dataLen);

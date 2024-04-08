@@ -148,6 +148,11 @@ class BlockReceiver implements Closeable {
   private final AtomicLong lastSentTime = new AtomicLong(0L);
   private long maxSendIdleTime;
 
+  /**
+   * MLEC stuff
+   */
+  private boolean zfsReconstruction;
+
   BlockReceiver(final ExtendedBlock block, final StorageType storageType,
       final DataInputStream in,
       final String inAddr, final String myAddr,
@@ -158,7 +163,8 @@ class BlockReceiver implements Closeable {
       CachingStrategy cachingStrategy,
       final boolean allowLazyPersist,
       final boolean pinning,
-      final String storageId) throws IOException {
+      final String storageId,
+      final boolean zfsReconstruction) throws IOException {
     try{
       this.block = block;
       this.in = in;
@@ -191,7 +197,8 @@ class BlockReceiver implements Closeable {
       // the interval of 0.5*readTimeout. Here, we set 0.9*readTimeout to be
       // the threshold for detecting congestion.
       this.maxSendIdleTime = (long) (readTimeout * 0.9);
-      if (LOG.isDebugEnabled()) {
+      this.zfsReconstruction = zfsReconstruction;
+      if (true) {
         LOG.debug(getClass().getSimpleName() + ": " + block
             + "\n storageType=" + storageType + ", inAddr=" + inAddr
             + ", myAddr=" + myAddr + "\n stage=" + stage + ", newGs=" + newGs

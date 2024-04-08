@@ -677,7 +677,7 @@ class DataXceiver extends Receiver implements Runnable {
 
   @Override
   public void writeBlock(final ExtendedBlock block,
-      final StorageType storageType, 
+      final StorageType storageType,
       final Token<BlockTokenIdentifier> blockToken,
       final String clientname,
       final DatanodeInfo[] targets,
@@ -695,6 +695,33 @@ class DataXceiver extends Receiver implements Runnable {
       final boolean[] targetPinnings,
       final String storageId,
       final String[] targetStorageIds) throws IOException {
+    this.writeBlock(block, storageType, blockToken, clientname, targets,
+        targetStorageTypes, srcDataNode, stage, pipelineSize, minBytesRcvd,
+        maxBytesRcvd, latestGenerationStamp, requestedChecksum, cachingStrategy,
+        allowLazyPersist, pinning, targetPinnings, storageId, targetStorageIds,
+        false);
+  }
+
+  public void writeBlock(final ExtendedBlock block,
+      final StorageType storageType, 
+      final Token<BlockTokenIdentifier> blockToken,
+      final String clientname,
+      final DatanodeInfo[] targets,
+      final StorageType[] targetStorageTypes,
+      final DatanodeInfo srcDataNode,
+      final BlockConstructionStage stage,
+      final int pipelineSize,
+      final long minBytesRcvd,
+      final long maxBytesRcvd,
+      final long latestGenerationStamp,
+      DataChecksum requestedChecksum,
+      CachingStrategy cachingStrategy,
+      boolean allowLazyPersist,
+      final boolean pinning,
+      final boolean[] targetPinnings,
+      final String storageId,
+      final String[] targetStorageIds,
+      final boolean zfsReconstruction) throws IOException {
     previousOpClientName = clientname;
     updateCurrentThreadName("Receiving block " + block);
     final boolean isDatanode = clientname.length() == 0;
@@ -736,7 +763,7 @@ class DataXceiver extends Receiver implements Runnable {
           + Arrays.asList(targets));
     }
 
-    if (LOG.isDebugEnabled()) {
+    if (true) {
       LOG.debug("opWriteBlock: stage={}, clientname={}\n  " +
               "block  ={}, newGs={}, bytesRcvd=[{}, {}]\n  " +
               "targets={}; pipelineSize={}, srcDataNode={}, pinning={}",
@@ -777,7 +804,7 @@ class DataXceiver extends Receiver implements Runnable {
             peer.getLocalAddressString(),
             stage, latestGenerationStamp, minBytesRcvd, maxBytesRcvd,
             clientname, srcDataNode, datanode, requestedChecksum,
-            cachingStrategy, allowLazyPersist, pinning, storageId));
+            cachingStrategy, allowLazyPersist, pinning, storageId, zfsReconstruction));
         replica = blockReceiver.getReplica();
       } else {
         replica = datanode.data.recoverClose(
@@ -1253,7 +1280,7 @@ class DataXceiver extends Receiver implements Runnable {
             proxyReply, proxySock.getRemoteSocketAddress().toString(),
             proxySock.getLocalSocketAddress().toString(),
             null, 0, 0, 0, "", null, datanode, remoteChecksum,
-            CachingStrategy.newDropBehind(), false, false, storageId));
+            CachingStrategy.newDropBehind(), false, false, storageId, false));
         
         // receive a block
         blockReceiver.receiveBlock(null, null, replyOut, null, 
@@ -1327,11 +1354,12 @@ class DataXceiver extends Receiver implements Runnable {
       CachingStrategy cachingStrategy,
       final boolean allowLazyPersist,
       final boolean pinning,
-      final String storageId) throws IOException {
+      final String storageId,
+      final boolean zfsReconstruction) throws IOException {
     return new BlockReceiver(block, storageType, in,
         inAddr, myAddr, stage, newGs, minBytesRcvd, maxBytesRcvd,
         clientname, srcDataNode, dn, requestedChecksum,
-        cachingStrategy, allowLazyPersist, pinning, storageId);
+        cachingStrategy, allowLazyPersist, pinning, storageId, zfsReconstruction);
   }
 
   /**

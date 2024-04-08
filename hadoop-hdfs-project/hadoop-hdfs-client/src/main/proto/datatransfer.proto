@@ -135,6 +135,7 @@ message OpWriteBlockProto {
   repeated bool targetPinnings = 15;
   optional string storageId = 16;
   repeated string targetStorageIds = 17;
+  optional bool zfsReconstruction = 18 [default = false];
 }
   
 message OpTransferBlockProto {

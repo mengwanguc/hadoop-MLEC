@@ -17,7 +17,9 @@
  */
 package org.apache.hadoop.hdfs.server.datanode.erasurecode;
 
+import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
+import org.apache.hadoop.hdfs.util.ZfsUtil;
 import org.apache.hadoop.util.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
@@ -144,6 +146,7 @@ public final class ErasureCodingWorker {
             reconInfo.getLiveBlockIndices(), reconInfo.getSourceDnInfos(),
             reconInfo.getTargetDnInfos(), reconInfo.getTargetStorageTypes(),
             reconInfo.getTargetStorageIDs(), reconInfo.getExcludeReconstructedIndices());
+
         // It may throw IllegalArgumentException from task#stripedReader
         // constructor.
         final StripedBlockReconstructor task =

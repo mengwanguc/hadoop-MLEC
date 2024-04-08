@@ -225,6 +225,7 @@ enum StorageTypeProto {
   PROVIDED = 5;
   NVDIMM = 6;
   ZFS = 7;
+  ZFS_RECON_BUFFER = 8;
 }
 
 /**

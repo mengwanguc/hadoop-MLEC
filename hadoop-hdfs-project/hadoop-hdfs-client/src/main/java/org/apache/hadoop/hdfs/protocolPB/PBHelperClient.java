@@ -483,6 +483,8 @@ public class PBHelperClient {
       return StorageTypeProto.NVDIMM;
     case ZFS:
       return StorageTypeProto.ZFS;
+    case ZFS_RECON_BUFFER:
+      return StorageTypeProto.ZFS_RECON_BUFFER;
     default:
       throw new IllegalStateException(
           "BUG: StorageType not found, type=" + type);
@@ -505,6 +507,8 @@ public class PBHelperClient {
       return StorageType.NVDIMM;
     case ZFS:
       return StorageType.ZFS;
+    case ZFS_RECON_BUFFER:
+      return StorageType.ZFS_RECON_BUFFER;
     default:
       throw new IllegalStateException(
           "BUG: StorageTypeProto not found, type=" + type);

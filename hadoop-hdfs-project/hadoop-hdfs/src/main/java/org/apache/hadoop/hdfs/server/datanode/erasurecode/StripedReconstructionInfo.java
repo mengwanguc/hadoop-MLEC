@@ -22,6 +22,7 @@ import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
+import org.apache.hadoop.hdfs.util.ZfsUtil;
 
 /**
  * Stores striped block info that can be used for block reconstruction.
@@ -42,6 +43,7 @@ public class StripedReconstructionInfo {
   private final StorageType[] targetStorageTypes;
   private final String[] targetStorageIds;
   private final byte[] excludeReconstructedIndices;
+  private boolean zfsReconstruction;
 
   public StripedReconstructionInfo(ExtendedBlock blockGroup,
       ErasureCodingPolicy ecPolicy, byte[] liveIndices, DatanodeInfo[] sources,
@@ -73,6 +75,10 @@ public class StripedReconstructionInfo {
     this.targetStorageTypes = targetStorageTypes;
     this.targetStorageIds = targetStorageIds;
     this.excludeReconstructedIndices = excludeReconstructedIndices;
+
+    if (ZfsUtil.onlyStorageType(this.targetStorageTypes, StorageType.ZFS)) {
+      this.zfsReconstruction = true;
+    }
   }
 
   ExtendedBlock getBlockGroup() {
@@ -109,6 +115,10 @@ public class StripedReconstructionInfo {
 
   byte[] getExcludeReconstructedIndices() {
     return excludeReconstructedIndices;
+  }
+
+  boolean isZfsReconstruction() {
+    return zfsReconstruction;
   }
 
 }

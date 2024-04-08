@@ -117,7 +117,6 @@ public class Sender implements DataTransferProtocol {
     send(out, Op.READ_BLOCK, proto);
   }
 
-
   @Override
   public void writeBlock(final ExtendedBlock blk,
       final StorageType storageType,
@@ -138,6 +137,33 @@ public class Sender implements DataTransferProtocol {
       final boolean[] targetPinnings,
       final String storageId,
       final String[] targetStorageIds) throws IOException {
+    writeBlock(blk, storageType, blockToken, clientName, targets,
+        targetStorageTypes, source, stage, pipelineSize, minBytesRcvd,
+        maxBytesRcvd, latestGenerationStamp, requestedChecksum,
+        cachingStrategy, allowLazyPersist, pinning, targetPinnings, storageId,
+        targetStorageIds, false);
+  }
+
+  public void writeBlock(final ExtendedBlock blk,
+      final StorageType storageType,
+      final Token<BlockTokenIdentifier> blockToken,
+      final String clientName,
+      final DatanodeInfo[] targets,
+      final StorageType[] targetStorageTypes,
+      final DatanodeInfo source,
+      final BlockConstructionStage stage,
+      final int pipelineSize,
+      final long minBytesRcvd,
+      final long maxBytesRcvd,
+      final long latestGenerationStamp,
+      DataChecksum requestedChecksum,
+      final CachingStrategy cachingStrategy,
+      final boolean allowLazyPersist,
+      final boolean pinning,
+      final boolean[] targetPinnings,
+      final String storageId,
+      final String[] targetStorageIds,
+      final boolean zfsReconstruction) throws IOException {
     ClientOperationHeaderProto header = DataTransferProtoUtil.buildClientHeader(
         blk, clientName, blockToken);
 
@@ -160,7 +186,8 @@ public class Sender implements DataTransferProtocol {
         .setAllowLazyPersist(allowLazyPersist)
         .setPinning(pinning)
         .addAllTargetPinnings(PBHelperClient.convert(targetPinnings, 1))
-        .addAllTargetStorageIds(PBHelperClient.convert(targetStorageIds, 1));
+        .addAllTargetStorageIds(PBHelperClient.convert(targetStorageIds, 1))
+        .setZfsReconstruction(zfsReconstruction);
     if (source != null) {
       proto.setSource(PBHelperClient.convertDatanodeInfo(source));
     }

@@ -2197,6 +2197,7 @@ public class BlockManager implements BlockStatsMXBean {
                 new DatanodeStorageInfo[failCause.size()];
         failCause.stream()
                 .map(ZfsFailureTuple::getDatanodeStorageInfo)
+                .peek(info -> info.setStorageType(StorageType.ZFS_RECON_BUFFER))
                 .collect(Collectors.toList())
                 .toArray(failCauseArr);
         rw.setTargets(failCauseArr);

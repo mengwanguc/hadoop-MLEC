@@ -31,6 +31,7 @@ RUN chmod +x /opt/seed_test.sh
 # Create a data directory for HDFS, we will point to this directory in config
 RUN mkdir -p /data/dataNode1
 RUN mkdir -p /data/dataNode2
+RUN mkdir -p /data/recon_buffer
 RUN mkdir -p /data/nameNode
 
 # bash is the preferred shell

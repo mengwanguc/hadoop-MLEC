@@ -216,6 +216,10 @@ public class DatanodeStorageInfo {
     this.state = state;
   }
 
+  void setStorageType(StorageType storageType) {
+    this.storageType = storageType;
+  }
+
   void setHeartbeatedSinceFailover(boolean value) {
     heartbeatedSinceFailover = value;
   }

@@ -73,6 +73,7 @@ class StripedBlockWriter {
   private long blockOffset4Target = 0;
   private long seqNo4Target = 0;
   private static final ByteBufferPool BUFFER_POOL = new ElasticByteBufferPool();
+  private boolean zfsReconstruction;
 
   StripedBlockWriter(StripedWriter stripedWriter, DataNode datanode,
                      Configuration conf, ExtendedBlock block,
@@ -143,12 +144,15 @@ class StripedBlockWriter {
           .setNodeID(datanode.getDatanodeId()).build();
       LOG.info("Sending block {}-[{}] to target {}", block.getBlockId(),
           storageType, target.getHostName());
+
+
       new Sender(out).writeBlock(block, storageType,
           blockToken, "", new DatanodeInfo[]{target},
           new StorageType[]{storageType}, source,
           BlockConstructionStage.PIPELINE_SETUP_CREATE, 0, 0, 0, 0,
           stripedWriter.getChecksum(), stripedWriter.getCachingStrategy(),
-          false, false, null, storageId, new String[]{storageId});
+          false, false, null, storageId, new String[]{storageId},
+          stripedWriter.isZfsReconstruction());
 
       targetSocket = socket;
       targetOutputStream = out;

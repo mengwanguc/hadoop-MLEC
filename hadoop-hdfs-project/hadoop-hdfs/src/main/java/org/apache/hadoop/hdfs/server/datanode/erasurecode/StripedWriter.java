@@ -64,6 +64,7 @@ class StripedWriter {
   private byte[] checksumBuf;
   private int bytesPerChecksum;
   private int checksumSize;
+  private boolean zfsReconstruction;
 
   StripedWriter(StripedReconstructor reconstructor, DataNode datanode,
       Configuration conf, StripedReconstructionInfo stripedReconInfo) {
@@ -80,6 +81,8 @@ class StripedWriter {
     assert targetStorageTypes != null;
     this.targetStorageIds = stripedReconInfo.getTargetStorageIds();
     assert targetStorageIds != null;
+
+    this.zfsReconstruction = stripedReconInfo.isZfsReconstruction();
 
     writers = new StripedBlockWriter[targets.length];
     targetIndices = new short[targets.length];
@@ -154,7 +157,7 @@ class StripedWriter {
           nSuccess++;
           success = true;
         } catch (IOException e) {
-          LOG.warn(e.getMessage());
+          LOG.error("Error while transferring data to target", e);
         }
         targetsStatus[i] = success;
       }
@@ -185,7 +188,7 @@ class StripedWriter {
     int nSuccess = 0;
     for (short i = 0; i < targets.length; i++) {
       try {
-        LOG.info("Creating writier {}", i);
+        LOG.info("Creating writer {}", i);
         writers[i] = createWriter(i);
         nSuccess++;
         targetsStatus[i] = true;
@@ -194,6 +197,7 @@ class StripedWriter {
         LOG.warn(e.getMessage());
       }
     }
+
     LOG.info("Total target lengths {}, number success {}", targets.length, nSuccess);
     return nSuccess;
   }
@@ -295,6 +299,10 @@ class StripedWriter {
 
   boolean hasValidTargets() {
     return hasValidTargets;
+  }
+
+  boolean isZfsReconstruction() {
+    return zfsReconstruction;
   }
 
   /**
