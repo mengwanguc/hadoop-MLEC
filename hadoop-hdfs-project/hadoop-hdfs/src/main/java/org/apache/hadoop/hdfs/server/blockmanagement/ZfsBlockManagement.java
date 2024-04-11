@@ -22,6 +22,15 @@ public class ZfsBlockManagement {
         this.blockFailureSources = new HashMap<>();
     }
 
+    // We can check whether the map contains blockId
+    // If so, the block failure is caused by
+    public boolean isZfsFailure(BlockInfo blockInfo) {
+        return blockFailureSources.containsKey(blockInfo.getBlockId());
+    }
+
+    public List<ZfsFailureTuple> getFailureTuple(BlockInfo blockInfo) {
+        return blockFailureSources.get(blockInfo.getBlockId());
+    }
 
     // This is for R_min
     public List<ZfsFailureTuple> getDataNodeZfsFailureTuples(DatanodeDescriptor datanode) {

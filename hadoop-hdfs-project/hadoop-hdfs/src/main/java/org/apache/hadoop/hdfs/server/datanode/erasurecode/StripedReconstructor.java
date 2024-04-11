@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
+import java.util.List;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -127,6 +128,9 @@ abstract class StripedReconstructor {
   private AtomicLong bytesWritten = new AtomicLong(0);
   private AtomicLong remoteBytesRead = new AtomicLong(0);
 
+  // MLEC stuff
+  private List<Integer> zfsFailedIndices;
+
   StripedReconstructor(ErasureCodingWorker worker,
       StripedReconstructionInfo stripedReconInfo) {
     this.erasureCodingWorker = worker;
@@ -148,7 +152,13 @@ abstract class StripedReconstructor {
     stripedReader = new StripedReader(this, datanode, conf, stripedReconInfo);
     cachingStrategy = CachingStrategy.newDefaultStrategy();
 
-    positionInBlock = 0L;
+    // MLEC positionInBlock offset
+    if (stripedReconInfo.isZfsReconstruction()) {
+      // It is possible that local ZFS stripes failed at two different indices
+      this.zfsFailedIndices = stripedReconInfo.getZfsFailureIndices();
+    } else {
+      positionInBlock = 0L;
+    }
 
     coderOptions = new ErasureCoderOptions(
         ecPolicy.getNumDataUnits(), ecPolicy.getNumParityUnits());

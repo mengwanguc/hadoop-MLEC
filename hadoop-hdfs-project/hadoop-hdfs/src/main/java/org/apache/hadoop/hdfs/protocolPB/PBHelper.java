@@ -1061,7 +1061,7 @@ public class PBHelper {
     return new BlockECReconstructionInfo(
         block, sourceDnInfos, targetDnInfos,
         targetStorageUuids, convertStorageTypes, liveBlkIndices,
-        excludeReconstructedIndices, ecPolicy);
+        excludeReconstructedIndices, ecPolicy, blockEcReconstructionInfoProto.getZfsFailureIndicesList());
   }
 
   public static BlockECReconstructionInfoProto convertBlockECRecoveryInfo(

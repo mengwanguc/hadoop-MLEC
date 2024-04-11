@@ -2365,9 +2365,19 @@ public class BlockManager implements BlockStatsMXBean {
       for (int i = 0; i < excludeReconstructed.size(); i++) {
         excludeReconstructedIndices[i] = excludeReconstructed.get(i);
       }
-      return new ErasureCodingWork(getBlockPoolId(), block, bc, newSrcNodes,
+      final ErasureCodingWork ecWork = new ErasureCodingWork(getBlockPoolId(), block, bc, newSrcNodes,
           containingNodes, liveReplicaNodes, additionalReplRequired,
           priority, newIndices, busyIndices, excludeReconstructedIndices);
+
+      // If the reconstruction is zfs, we should set the zfs failure indices
+      if (this.zfsBlockMgr.isZfsFailure(block)) {
+        ecWork.setZfsFailureIndices(this.zfsBlockMgr.getFailureTuple(block)
+                .stream()
+                .map(ZfsFailureTuple::getEcIndex)
+                .collect(Collectors.toList()));
+      }
+
+      return ecWork;
     } else {
       return new ReplicationWork(block, bc, srcNodes,
           containingNodes, liveReplicaNodes, additionalReplRequired,

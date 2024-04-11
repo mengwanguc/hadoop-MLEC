@@ -29,6 +29,7 @@ import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * A BlockECReconstructionCommand is an instruction to a DataNode to
@@ -81,20 +82,26 @@ public class BlockECReconstructionCommand extends DatanodeCommand {
     private final byte[] excludeReconstructedIndices;
     private final ErasureCodingPolicy ecPolicy;
 
+    // MLEC stuff
+    private List<Integer> zfsFailureIndices;
+
     public BlockECReconstructionInfo(ExtendedBlock block,
         DatanodeInfo[] sources, DatanodeStorageInfo[] targetDnStorageInfo,
-        byte[] liveBlockIndices, byte[] excludeReconstructedIndices, ErasureCodingPolicy ecPolicy) {
+        byte[] liveBlockIndices, byte[] excludeReconstructedIndices, ErasureCodingPolicy ecPolicy,
+        List<Integer> zfsFailureIndices) {
       this(block, sources, DatanodeStorageInfo
           .toDatanodeInfos(targetDnStorageInfo), DatanodeStorageInfo
           .toStorageIDs(targetDnStorageInfo), DatanodeStorageInfo
           .toStorageTypes(targetDnStorageInfo), liveBlockIndices,
-          excludeReconstructedIndices, ecPolicy);
+          excludeReconstructedIndices, ecPolicy,
+          zfsFailureIndices);
     }
 
     public BlockECReconstructionInfo(ExtendedBlock block,
         DatanodeInfo[] sources, DatanodeInfo[] targets,
         String[] targetStorageIDs, StorageType[] targetStorageTypes,
-        byte[] liveBlockIndices, byte[] excludeReconstructedIndices, ErasureCodingPolicy ecPolicy) {
+        byte[] liveBlockIndices, byte[] excludeReconstructedIndices, ErasureCodingPolicy ecPolicy,
+        List<Integer> zfsFailureIndices) {
       this.block = block;
       this.sources = sources;
       this.targets = targets;
@@ -104,6 +111,7 @@ public class BlockECReconstructionCommand extends DatanodeCommand {
           new byte[]{} : liveBlockIndices;
       this.excludeReconstructedIndices = excludeReconstructedIndices;
       this.ecPolicy = ecPolicy;
+      this.zfsFailureIndices = zfsFailureIndices;
     }
 
     public ExtendedBlock getExtendedBlock() {
@@ -136,6 +144,10 @@ public class BlockECReconstructionCommand extends DatanodeCommand {
 
     public ErasureCodingPolicy getErasureCodingPolicy() {
       return ecPolicy;
+    }
+
+    public List<Integer> getZfsFailureIndices() {
+      return zfsFailureIndices;
     }
 
     @Override

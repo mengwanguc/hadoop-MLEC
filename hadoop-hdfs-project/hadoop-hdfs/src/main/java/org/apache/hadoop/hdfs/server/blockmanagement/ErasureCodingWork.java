@@ -37,6 +37,8 @@ class ErasureCodingWork extends BlockReconstructionWork {
   private final byte[] liveBusyBlockIndices;
   private final byte[] excludeReconstructedIndices;
   private final String blockPoolId;
+  // For each target, what local blocks we need to read
+  private List<List<Integer>> zfsFailureIndices;
 
   public ErasureCodingWork(String blockPoolId, BlockInfo block,
       BlockCollection bc,
@@ -54,6 +56,10 @@ class ErasureCodingWork extends BlockReconstructionWork {
     this.excludeReconstructedIndices = excludeReconstrutedIndices;
     LOG.debug("Creating an ErasureCodingWork to {} reconstruct ",
         block);
+  }
+
+  void setZfsFailureIndices(List<List<Integer>> zfsFailureIndices) {
+    this.zfsFailureIndices = zfsFailureIndices;
   }
 
   byte[] getLiveBlockIndices() {
@@ -165,9 +171,11 @@ class ErasureCodingWork extends BlockReconstructionWork {
       LOG.info("ErasureCodeWork::addTaskToDatanode added for {} with src nodes {}",
               targets[0].getDatanodeDescriptor().getHostName(),
               Arrays.stream(getSrcNodes()).map(DatanodeID::getHostName).collect(Collectors.toList()));
+      // FIX: This zfsFailureIndices list needs to be modified down the pipeline
       targets[0].getDatanodeDescriptor().addBlockToBeErasureCoded(
           new ExtendedBlock(blockPoolId, stripedBlk), getSrcNodes(), targets,
-          liveBlockIndices, excludeReconstructedIndices, stripedBlk.getErasureCodingPolicy());
+          liveBlockIndices, excludeReconstructedIndices, stripedBlk.getErasureCodingPolicy(),
+          this.zfsFailureIndices.get(0));
     }
   }
 

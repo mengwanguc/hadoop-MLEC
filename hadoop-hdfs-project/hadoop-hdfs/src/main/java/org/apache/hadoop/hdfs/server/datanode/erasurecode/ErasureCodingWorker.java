@@ -134,18 +134,21 @@ public final class ErasureCodingWorker {
         LOG.warn("====Trying to start a reconstruction task====\n"
                 + "poolId {}, blockId {}\n"
                 + "target data nodes {}\n"
-                + "target storage type {}, id {}",
+                + "target storage type {}, id {}\n"
+                + "zfs failure indices {}",
                 reconInfo.getExtendedBlock().getBlockPoolId(),
                 reconInfo.getExtendedBlock().getBlockId(),
                 targetDataNodesStr,
-                reconInfo.getTargetStorageTypes(), reconInfo.getTargetStorageIDs());
+                reconInfo.getTargetStorageTypes(), reconInfo.getTargetStorageIDs(),
+                reconInfo.getZfsFailureIndices());
 
         StripedReconstructionInfo stripedReconInfo =
             new StripedReconstructionInfo(
             reconInfo.getExtendedBlock(), reconInfo.getErasureCodingPolicy(),
             reconInfo.getLiveBlockIndices(), reconInfo.getSourceDnInfos(),
             reconInfo.getTargetDnInfos(), reconInfo.getTargetStorageTypes(),
-            reconInfo.getTargetStorageIDs(), reconInfo.getExcludeReconstructedIndices());
+            reconInfo.getTargetStorageIDs(), reconInfo.getExcludeReconstructedIndices(),
+            reconInfo.getZfsFailureIndices());
 
         // It may throw IllegalArgumentException from task#stripedReader
         // constructor.

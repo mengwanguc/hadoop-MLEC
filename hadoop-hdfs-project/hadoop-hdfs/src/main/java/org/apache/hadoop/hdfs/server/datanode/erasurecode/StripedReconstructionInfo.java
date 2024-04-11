@@ -24,6 +24,8 @@ import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.util.ZfsUtil;
 
+import java.util.List;
+
 /**
  * Stores striped block info that can be used for block reconstruction.
  */
@@ -43,28 +45,32 @@ public class StripedReconstructionInfo {
   private final StorageType[] targetStorageTypes;
   private final String[] targetStorageIds;
   private final byte[] excludeReconstructedIndices;
+
+  // MLEC stuff
   private boolean zfsReconstruction;
+  private List<Integer> zfsFailureIndices;
 
   public StripedReconstructionInfo(ExtendedBlock blockGroup,
       ErasureCodingPolicy ecPolicy, byte[] liveIndices, DatanodeInfo[] sources,
       byte[] targetIndices) {
     this(blockGroup, ecPolicy, liveIndices, sources, targetIndices, null,
-        null, null, new byte[0]);
+        null, null, new byte[0], null);
   }
 
   StripedReconstructionInfo(ExtendedBlock blockGroup,
       ErasureCodingPolicy ecPolicy, byte[] liveIndices, DatanodeInfo[] sources,
       DatanodeInfo[] targets, StorageType[] targetStorageTypes,
-      String[] targetStorageIds, byte[] excludeReconstructedIndices) {
+      String[] targetStorageIds, byte[] excludeReconstructedIndices,
+      List<Integer> zfsFailureIndices) {
     this(blockGroup, ecPolicy, liveIndices, sources, null, targets,
-        targetStorageTypes, targetStorageIds, excludeReconstructedIndices);
+        targetStorageTypes, targetStorageIds, excludeReconstructedIndices, zfsFailureIndices);
   }
 
   private StripedReconstructionInfo(ExtendedBlock blockGroup,
       ErasureCodingPolicy ecPolicy, byte[] liveIndices, DatanodeInfo[] sources,
       byte[] targetIndices, DatanodeInfo[] targets,
       StorageType[] targetStorageTypes, String[] targetStorageIds,
-      byte[] excludeReconstructedIndices) {
+      byte[] excludeReconstructedIndices, List<Integer> zfsFailureIndices) {
 
     this.blockGroup = blockGroup;
     this.ecPolicy = ecPolicy;
@@ -76,8 +82,9 @@ public class StripedReconstructionInfo {
     this.targetStorageIds = targetStorageIds;
     this.excludeReconstructedIndices = excludeReconstructedIndices;
 
-    if (ZfsUtil.onlyStorageType(this.targetStorageTypes, StorageType.ZFS)) {
+    if (zfsFailureIndices != null && !zfsFailureIndices.isEmpty()) {
       this.zfsReconstruction = true;
+      this.zfsFailureIndices = zfsFailureIndices;
     }
   }
 
@@ -119,6 +126,10 @@ public class StripedReconstructionInfo {
 
   boolean isZfsReconstruction() {
     return zfsReconstruction;
+  }
+
+  List<Integer> getZfsFailureIndices() {
+    return zfsFailureIndices;
   }
 
 }
