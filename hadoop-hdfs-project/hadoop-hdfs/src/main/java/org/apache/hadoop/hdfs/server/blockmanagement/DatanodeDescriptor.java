@@ -708,8 +708,8 @@ public class DatanodeDescriptor extends DatanodeInfo {
     BlockECReconstructionInfo task = new BlockECReconstructionInfo(block,
         sources, targets, liveBlockIndices, excludeReconstrutedIndices, ecPolicy, zfsFailureIndices);
     ecBlocksToBeErasureCoded.offer(task);
-    BlockManager.LOG.info("Adding block reconstruction task " + task + " to "
-        + getHostName() + ", current queue size is " + ecBlocksToBeErasureCoded.size());
+    BlockManager.LOG.info("Adding EC block reconstruction task " + task + " to "
+        + getHostName() + ", current queue size is " + ecBlocksToBeErasureCoded.size() + " zfs failure indices " + zfsFailureIndices);
   }
 
   /**

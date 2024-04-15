@@ -129,7 +129,7 @@ abstract class StripedReconstructor {
   private AtomicLong remoteBytesRead = new AtomicLong(0);
 
   // MLEC stuff
-  private List<Integer> zfsFailedIndices;
+  protected List<Integer> zfsFailedIndices;
 
   StripedReconstructor(ErasureCodingWorker worker,
       StripedReconstructionInfo stripedReconInfo) {

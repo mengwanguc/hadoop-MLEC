@@ -1907,6 +1907,7 @@ public class DatanodeManager {
       // check pending erasure coding tasks
       List<BlockECReconstructionInfo> pendingECList = nodeinfo
           .getErasureCodeCommand(numECReconstructedTasks);
+      LOG.info("Offering into DN command {}", pendingECList);
       if (pendingECList != null && !pendingECList.isEmpty()) {
         cmds.add(new BlockECReconstructionCommand(
             DNA_ERASURE_CODING_RECONSTRUCTION, pendingECList));

@@ -157,6 +157,7 @@ public class BlockECReconstructionCommand extends DatanodeCommand {
           .append(Arrays.asList(sources)).append(" To: [")
           .append(Arrays.asList(targets)).append(")\n")
           .append(" Block Indices: ").append(Arrays.toString(liveBlockIndices))
+          .append(" Zfs Failure Indices: ").append(zfsFailureIndices)
           .toString();
     }
   }

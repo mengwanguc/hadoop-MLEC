@@ -2168,6 +2168,7 @@ public class BlockManager implements BlockStatsMXBean {
     // Step 2: choose target nodes for each reconstruction task
     for (BlockReconstructionWork rw : reconWork) {
       List<ZfsFailureTuple> failCause = this.zfsBlockMgr.blockFailureSources.get(rw.getBlock().getBlockId());
+      LOG.info("Zfs failure causes {}",failCause);
 
       try {
         LOG.info("Block {} failed because of {} on hosts {}",
@@ -2370,11 +2371,15 @@ public class BlockManager implements BlockStatsMXBean {
           priority, newIndices, busyIndices, excludeReconstructedIndices);
 
       // If the reconstruction is zfs, we should set the zfs failure indices
+      LOG.info("EC repair block id {}, failure map {}", block.getBlockId(), this.zfsBlockMgr.blockFailureSources);
       if (this.zfsBlockMgr.isZfsFailure(block)) {
-        ecWork.setZfsFailureIndices(this.zfsBlockMgr.getFailureTuple(block)
-                .stream()
-                .map(ZfsFailureTuple::getEcIndex)
-                .collect(Collectors.toList()));
+        List<List<Integer>> zfsFailureIndices = this.zfsBlockMgr.getFailureTuple(block)
+          .stream()
+          .map(ZfsFailureTuple::getEcIndex)
+          .collect(Collectors.toList());
+
+        LOG.info("Setting zfsFailureIndices for EC work {}", zfsFailureIndices);
+        ecWork.setZfsFailureIndices(zfsFailureIndices);
       }
 
       return ecWork;
@@ -4725,6 +4730,8 @@ public class BlockManager implements BlockStatsMXBean {
         failedBlocksIds.get(0).setDatanodeStorageInfo(new DatanodeStorageInfo(node, srdb.getStorage()));
         failureCause.add(failedBlocksIds.get(0));
         this.zfsBlockMgr.blockFailureSources.put(rdbi.getBlock().getBlockId(), failureCause);
+        LOG.info("ZFS failure map {}", this.zfsBlockMgr.blockFailureSources);
+        LOG.info("ZFS failure tuples {}", failureCause);
 
         removeStoredBlock(storageInfo, rdbi.getBlock(), node);
         deleted++;

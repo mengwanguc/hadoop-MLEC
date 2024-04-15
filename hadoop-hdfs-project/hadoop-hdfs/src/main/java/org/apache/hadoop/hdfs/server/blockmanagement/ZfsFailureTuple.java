@@ -48,4 +48,13 @@ public class ZfsFailureTuple {
     public void setDatanodeStorageInfo(DatanodeStorageInfo datanodeStorageInfo) {
         this.datanodeStorageInfo = datanodeStorageInfo;
     }
+
+    @Override
+    public String toString() {
+        return "ZfsFailureTuple{" +
+                "failedBlock=" + failedBlock +
+                ", ecIndex=" + ecIndex +
+                ", datanodeStorageInfo=" + datanodeStorageInfo +
+                '}';
+    }
 }

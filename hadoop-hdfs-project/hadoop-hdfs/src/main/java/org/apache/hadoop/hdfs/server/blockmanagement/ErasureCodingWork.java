@@ -151,6 +151,9 @@ class ErasureCodingWork extends BlockReconstructionWork {
   void addTaskToDatanode(NumberReplicas numberReplicas) {
     final DatanodeStorageInfo[] targets = getTargets();
     assert targets.length > 0;
+    LOG.info("AddTaskToDatanode called with zfs failures {}, {}",
+      this.zfsFailureIndices.size(),
+      this.zfsFailureIndices);
     BlockInfoStriped stripedBlk = (BlockInfoStriped) getBlock();
 
     if (hasNotEnoughRack()) {
@@ -168,9 +171,10 @@ class ErasureCodingWork extends BlockReconstructionWork {
         createReplicationWork(leavingServiceSources.get(i), targets[i]);
       }
     } else {
-      LOG.info("ErasureCodeWork::addTaskToDatanode added for {} with src nodes {}",
+      LOG.info("ErasureCodeWork::addTaskToDatanode added for {} with src nodes {} with failure indices {}",
               targets[0].getDatanodeDescriptor().getHostName(),
-              Arrays.stream(getSrcNodes()).map(DatanodeID::getHostName).collect(Collectors.toList()));
+              Arrays.stream(getSrcNodes()).map(DatanodeID::getHostName).collect(Collectors.toList()),
+              this.zfsFailureIndices);
       // FIX: This zfsFailureIndices list needs to be modified down the pipeline
       targets[0].getDatanodeDescriptor().addBlockToBeErasureCoded(
           new ExtendedBlock(blockPoolId, stripedBlk), getSrcNodes(), targets,

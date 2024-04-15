@@ -1094,6 +1094,8 @@ public class PBHelper {
     builder.setEcPolicy(PBHelperClient.convertErasureCodingPolicy(
         blockEcRecoveryInfo.getErasureCodingPolicy()));
 
+    builder.addAllZfsFailureIndices(blockEcRecoveryInfo.getZfsFailureIndices());
+
     return builder.build();
   }
 

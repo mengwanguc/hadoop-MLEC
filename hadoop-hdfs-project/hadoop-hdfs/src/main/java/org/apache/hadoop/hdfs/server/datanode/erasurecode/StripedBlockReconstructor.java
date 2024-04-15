@@ -38,12 +38,26 @@ class StripedBlockReconstructor extends StripedReconstructor
 
   private StripedWriter stripedWriter;
 
+  private Integer zfsRepairIndex;
+
   StripedBlockReconstructor(ErasureCodingWorker worker,
       StripedReconstructionInfo stripedReconInfo) {
+    this(worker, stripedReconInfo, null);
+  }
+
+  StripedBlockReconstructor(ErasureCodingWorker worker,
+      StripedReconstructionInfo stripedReconInfo, Integer zfsRepairIndex) {
     super(worker, stripedReconInfo);
 
     stripedWriter = new StripedWriter(this, getDatanode(),
         getConf(), stripedReconInfo);
+
+    this.zfsRepairIndex = zfsRepairIndex;
+    if (this.zfsRepairIndex != null) {
+      LOG.info("StripedBlockReconstructor - ZFS repair index {}", this.zfsRepairIndex);
+      // Set start and end position of this repair
+      stripedWriter.setZfsRepairIndex(this.zfsRepairIndex);
+    }
   }
 
   boolean hasValidTargets() {
@@ -105,6 +119,10 @@ class StripedBlockReconstructor extends StripedReconstructor
     long bytesRead = 0;
     long bytesTransferred = 0;
 
+    if (this.zfsFailedIndices != null) {
+      LOG.info("Reconstruction failure indices {}", this.zfsFailedIndices);
+    }
+
     while (getPositionInBlock() < getMaxTargetLength()) {
       DataNodeFaultInjector.get().stripedBlockReconstruction();
       long remaining = getMaxTargetLength() - getPositionInBlock();
@@ -117,6 +135,8 @@ class StripedBlockReconstructor extends StripedReconstructor
       if (getDatanode().getEcReconstuctReadThrottler() != null) {
         getDatanode().getEcReconstuctReadThrottler().throttle(bytesToRead);
       }
+
+
       // step1: read from minimum source DNs required for reconstruction.
       // The returned success list is the source DNs we do real read from
       LOG.info("Read total of {} bytes as sources", toReconstructLen);
