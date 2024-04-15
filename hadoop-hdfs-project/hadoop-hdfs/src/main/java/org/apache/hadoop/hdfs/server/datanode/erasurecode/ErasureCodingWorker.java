@@ -155,22 +155,24 @@ public final class ErasureCodingWorker {
         // constructor.
 
         // For each of the ZFS failure indices, we need to call the StripedBlockReconstructor
-        final StripedBlockReconstructor task;
+        StripedBlockReconstructor task;
         if (!stripedReconInfo.getZfsFailureIndices().isEmpty()) {
-          task = new StripedBlockReconstructor(this, stripedReconInfo);
+          for (Integer zfsIndex : stripedReconInfo.getZfsFailureIndices()) {
+            task = new StripedBlockReconstructor(this, stripedReconInfo, zfsIndex);
 
-          if (task.hasValidTargets()) {
-            stripedReconstructionPool.submit(task);
-            // See HDFS-12044. We increase xmitsInProgress even the task is only
-            // enqueued, so that
-            //   1) NN will not send more tasks than what DN can execute and
-            //   2) DN will not throw away reconstruction tasks, and instead keeps
-            //      an unbounded number of tasks in the executor's task queue.
-            int xmitsSubmitted = Math.max((int)(task.getXmits() * xmitWeight), 1);
-            getDatanode().incrementXmitsInProcess(xmitsSubmitted);
-          } else {
-            LOG.warn("No missing internal block. Skip reconstruction for task:{}",
-                reconInfo);
+            if (task.hasValidTargets()) {
+              stripedReconstructionPool.submit(task);
+              // See HDFS-12044. We increase xmitsInProgress even the task is only
+              // enqueued, so that
+              //   1) NN will not send more tasks than what DN can execute and
+              //   2) DN will not throw away reconstruction tasks, and instead keeps
+              //      an unbounded number of tasks in the executor's task queue.
+              int xmitsSubmitted = Math.max((int)(task.getXmits() * xmitWeight), 1);
+              getDatanode().incrementXmitsInProcess(xmitsSubmitted);
+            } else {
+              LOG.warn("No missing internal block. Skip reconstruction for task:{}",
+                  reconInfo);
+            }
           }
         } else {
           task = new StripedBlockReconstructor(this, stripedReconInfo);

@@ -24,6 +24,7 @@ import java.time.Instant;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.hdfs.server.datanode.DataNodeFaultInjector;
 import org.apache.hadoop.hdfs.server.datanode.metrics.DataNodeMetrics;
+import org.apache.hadoop.hdfs.util.ZfsUtil;
 import org.apache.hadoop.io.erasurecode.rawcoder.InvalidDecodingException;
 import org.apache.hadoop.util.Time;
 
@@ -54,9 +55,13 @@ class StripedBlockReconstructor extends StripedReconstructor
 
     this.zfsRepairIndex = zfsRepairIndex;
     if (this.zfsRepairIndex != null) {
-      LOG.info("StripedBlockReconstructor - ZFS repair index {}", this.zfsRepairIndex);
       // Set start and end position of this repair
-      stripedWriter.setZfsRepairIndex(this.zfsRepairIndex);
+      updatePositionInBlock(ZfsUtil.ZFS_BLOCK_SIZE_BYTES * this.zfsRepairIndex);
+      setMaxTargetLength(ZfsUtil.ZFS_BLOCK_SIZE_BYTES * (this.zfsRepairIndex + 1));
+      LOG.info("StripedBlockReconstructor - ZFS repair index {}, starting at {}, ending at {}", 
+        this.zfsRepairIndex,
+        getPositionInBlock(),
+        getMaxTargetLength());
     }
   }
 
