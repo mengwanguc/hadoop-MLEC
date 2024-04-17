@@ -722,6 +722,7 @@ class DataXceiver extends Receiver implements Runnable {
       final String storageId,
       final String[] targetStorageIds,
       final boolean zfsReconstruction) throws IOException {
+    LOG.info("writeBlock {}", block);
     previousOpClientName = clientname;
     updateCurrentThreadName("Receiving block " + block);
     final boolean isDatanode = clientname.length() == 0;
@@ -763,18 +764,16 @@ class DataXceiver extends Receiver implements Runnable {
           + Arrays.asList(targets));
     }
 
-    if (true) {
-      LOG.debug("opWriteBlock: stage={}, clientname={}\n  " +
-              "block  ={}, newGs={}, bytesRcvd=[{}, {}]\n  " +
-              "targets={}; pipelineSize={}, srcDataNode={}, pinning={}",
-          stage, clientname, block, latestGenerationStamp, minBytesRcvd,
-          maxBytesRcvd, Arrays.asList(targets), pipelineSize, srcDataNode,
-          pinning);
-      LOG.debug("isDatanode={}, isClient={}, isTransfer={}",
-          isDatanode, isClient, isTransfer);
-      LOG.debug("writeBlock receive buf size {} tcp no delay {}",
-          peer.getReceiveBufferSize(), peer.getTcpNoDelay());
-    }
+    LOG.info("opWriteBlock: stage={}, clientname={}\n  " +
+            "block  ={}, newGs={}, bytesRcvd=[{}, {}]\n  " +
+            "targets={}; pipelineSize={}, srcDataNode={}, pinning={}, stage={}",
+        stage, clientname, block, latestGenerationStamp, minBytesRcvd,
+        maxBytesRcvd, Arrays.asList(targets), pipelineSize, srcDataNode,
+        pinning, stage);
+    LOG.debug("isDatanode={}, isClient={}, isTransfer={}",
+        isDatanode, isClient, isTransfer);
+    LOG.debug("writeBlock receive buf size {} tcp no delay {}",
+        peer.getReceiveBufferSize(), peer.getTcpNoDelay());
 
     // We later mutate block's generation stamp and length, but we need to
     // forward the original version of the block to downstream mirrors, so
@@ -967,9 +966,9 @@ class DataXceiver extends Receiver implements Runnable {
       if (isDatanode ||
           stage == BlockConstructionStage.PIPELINE_CLOSE_RECOVERY) {
         datanode.closeBlock(block, null, storageUuid, isOnTransientStorage);
-        LOG.info("Received {} src: {} dest: {} volume: {} of size {}",
+        LOG.info("Received {} src: {} dest: {} volume: {} of size {} for stage {}",
             block, remoteAddress, localAddress, replica.getVolume(),
-            block.getNumBytes());
+            block.getNumBytes(), stage);
       }
 
       if(isClient) {

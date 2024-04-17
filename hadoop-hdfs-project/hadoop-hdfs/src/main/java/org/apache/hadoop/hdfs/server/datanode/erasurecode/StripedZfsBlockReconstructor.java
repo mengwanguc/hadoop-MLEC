@@ -1,73 +1,41 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.apache.hadoop.hdfs.server.datanode.erasurecode;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.time.Instant;
-
-import org.apache.hadoop.classification.InterfaceAudience;
+import io.netty.buffer.ByteBuf;
 import org.apache.hadoop.hdfs.server.datanode.DataNodeFaultInjector;
 import org.apache.hadoop.hdfs.server.datanode.metrics.DataNodeMetrics;
 import org.apache.hadoop.hdfs.util.ZfsUtil;
 import org.apache.hadoop.io.erasurecode.rawcoder.InvalidDecodingException;
 import org.apache.hadoop.util.Time;
 
-/**
- * StripedBlockReconstructor reconstruct one or more missed striped block in
- * the striped block group, the minimum number of live striped blocks should
- * be no less than data block number.
- */
-@InterfaceAudience.Private
-class StripedBlockReconstructor extends StripedReconstructor
-    implements Runnable {
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.util.List;
+
+public class StripedZfsBlockReconstructor extends StripedBlockReconstructor
+        implements Runnable {
 
   private StripedWriter stripedWriter;
 
-  private Integer zfsRepairIndex;
+  private List<Integer> zfsRepairIndices;
 
-  StripedBlockReconstructor(ErasureCodingWorker worker,
-      StripedReconstructionInfo stripedReconInfo) {
-    this(worker, stripedReconInfo, null);
-  }
+  private int zfsRepairingIndex;
 
-  StripedBlockReconstructor(ErasureCodingWorker worker,
-      StripedReconstructionInfo stripedReconInfo, Integer zfsRepairIndex) {
-    super(worker, stripedReconInfo);
+  // This is a Datanode<ZFSIndices<ByteBuffer>>
+  private List<List<ByteBuffer>> zioBuffer;
 
-    stripedWriter = new StripedWriter(this, getDatanode(),
-        getConf(), stripedReconInfo);
+  StripedZfsBlockReconstructor(ErasureCodingWorker worker, StripedReconstructionInfo stripedReconstructionInfo) {
+    super(worker, stripedReconstructionInfo);
 
-    this.zfsRepairIndex = zfsRepairIndex;
-    LOG.info("StripedBlockReconstructor initialized with zfsRepairIndex {}", this.zfsRepairIndex);
-    if (this.zfsRepairIndex != null) {
-      // Set start and end position of this repair
-      updatePositionInBlock(ZfsUtil.ZFS_BLOCK_SIZE_BYTES * this.zfsRepairIndex);
-      setMaxTargetLength(ZfsUtil.ZFS_BLOCK_SIZE_BYTES * (this.zfsRepairIndex + 1));
-      LOG.info("StripedBlockReconstructor - ZFS repair index {}, starting at {}, ending at {}", 
-        this.zfsRepairIndex,
-        getPositionInBlock(),
-        getMaxTargetLength());
+    stripedWriter = new StripedWriter(this, getDatanode(), getConf(), stripedReconstructionInfo);
+
+    this.zfsRepairIndices = stripedReconstructionInfo.getZfsFailureIndices();
+    LOG.info("StripedZfsBlockReconstructor initialized with zfsRepairIndices {}", this.zfsRepairIndices);
+
+    if (stripedReconstructionInfo.getZfsFailureIndices() == null || this.zfsRepairIndices.isEmpty()) {
+      throw new IllegalArgumentException("ZFS repair indices cannot be null or empty");
     }
-  }
 
-  boolean hasValidTargets() {
-    return stripedWriter.hasValidTargets();
   }
 
   @Override
@@ -81,15 +49,27 @@ class StripedBlockReconstructor extends StripedReconstructor
 
       getStripedReader().init();
       LOG.info("Got stripe reader");
-      
+
       // Note, this step will try to create the block on the target datanode first for later data append
       // This is what is throwing the DiskOutOfSpaceException. For ZFS, we need to tell HDFS to hold the block in memory?
       stripedWriter.init();
       LOG.info("Initialized stripe writer");
-      Thread.sleep(15000);
+      Thread.sleep(5000);
 
-      reconstruct();
-      LOG.info("Reconstructed");
+      // For each of the zfs repair indices, we should do a reconstruction
+      for (int zfsIndex : this.zfsRepairIndices) {
+        this.zfsRepairingIndex = zfsIndex;
+        // Set start and end position of this repair
+        updatePositionInBlock(ZfsUtil.ZFS_BLOCK_SIZE_BYTES * zfsIndex);
+        setMaxTargetLength(ZfsUtil.ZFS_BLOCK_SIZE_BYTES * (zfsIndex + 1));
+        LOG.info("StripedZfsBlockReconstructor - ZFS repair index {}, starting at {}, ending at {}",
+                zfsIndex,
+                getPositionInBlock(),
+                getMaxTargetLength());
+
+        reconstruct();
+        LOG.info("Reconstructed {}", zfsIndex);
+      }
 
       stripedWriter.endTargetBlocks();
 
@@ -120,16 +100,13 @@ class StripedBlockReconstructor extends StripedReconstructor
   @Override
   void reconstruct() throws IOException {
     long loopStart = Time.monotonicNow();
-    LOG.warn("Reconstruction started at {} at pos {} and len {}",
+    LOG.warn("Reconstruction started for zfs index {} at {} at pos {} and len {}",
+            this.zfsRepairingIndex,
             Instant.ofEpochMilli(Time.now()).toString(),
             getPositionInBlock(),
             getMaxTargetLength());
     long bytesRead = 0;
     long bytesTransferred = 0;
-
-    if (this.zfsFailedIndices != null) {
-      LOG.info("Reconstruction failure indices {}", this.zfsFailedIndices);
-    }
 
     while (getPositionInBlock() < getMaxTargetLength()) {
       DataNodeFaultInjector.get().stripedBlockReconstruction();
@@ -187,52 +164,7 @@ class StripedBlockReconstructor extends StripedReconstructor
     LOG.warn("Total read {} bytes, wrote {} bytes", bytesRead, bytesTransferred);
   }
 
-  protected void reconstructTargets(int toReconstructLen) throws IOException {
-    ByteBuffer[] inputs = getStripedReader().getInputBuffers(toReconstructLen);
-
-    int[] erasedIndices = stripedWriter.getRealTargetIndices();
-    ByteBuffer[] outputs = stripedWriter.getRealTargetBuffers(toReconstructLen);
-
-    if (isValidationEnabled()) {
-      markBuffers(inputs);
-      decode(inputs, erasedIndices, outputs);
-      resetBuffers(inputs);
-
-      DataNodeFaultInjector.get().badDecoding(outputs);
-      long start = Time.monotonicNow();
-      try {
-        getValidator().validate(inputs, erasedIndices, outputs);
-        long validateEnd = Time.monotonicNow();
-        getDatanode().getMetrics().incrECReconstructionValidateTime(
-            validateEnd - start);
-      } catch (InvalidDecodingException e) {
-        long validateFailedEnd = Time.monotonicNow();
-        getDatanode().getMetrics().incrECReconstructionValidateTime(
-            validateFailedEnd - start);
-        getDatanode().getMetrics().incrECInvalidReconstructionTasks();
-        throw e;
-      }
-    } else {
-      decode(inputs, erasedIndices, outputs);
-    }
-
-    stripedWriter.updateRealTargetBuffers(toReconstructLen);
-  }
-
-  protected void decode(ByteBuffer[] inputs, int[] erasedIndices,
-      ByteBuffer[] outputs) throws IOException {
-    long start = System.nanoTime();
-    getDecoder().decode(inputs, erasedIndices, outputs);
-    long end = System.nanoTime();
-    this.getDatanode().getMetrics().incrECDecodingTime(end - start);
-  }
-
-  /**
-   * Clear all associated buffers.
-   */
-  protected void clearBuffers() {
-    getStripedReader().clearBuffers();
-
-    stripedWriter.clearBuffers();
+  private void allocateBuffer() {
+    // How big the buffer needs to be? Each should have the entire block size
   }
 }

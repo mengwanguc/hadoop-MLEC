@@ -145,7 +145,6 @@ class StripedBlockWriter {
       LOG.info("Sending block {}-[{}] to target {}", block.getBlockId(),
           storageType, target.getHostName());
 
-
       new Sender(out).writeBlock(block, storageType,
           blockToken, "", new DatanodeInfo[]{target},
           new StorageType[]{storageType}, source,

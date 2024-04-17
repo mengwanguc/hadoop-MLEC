@@ -113,8 +113,9 @@ class PendingReconstructionBlocks {
     boolean removed = false;
     synchronized (pendingReconstructions) {
       PendingBlockInfo found = pendingReconstructions.get(block);
+      LOG.info("Pending block info {}", found);
       if (found != null) {
-        LOG.debug("Removing pending reconstruction for {}", block);
+        LOG.info("Removing pending reconstruction for {}", block);
         found.decrementReplicas(dn);
         if (found.getNumReplicas() <= 0) {
           pendingReconstructions.remove(block);

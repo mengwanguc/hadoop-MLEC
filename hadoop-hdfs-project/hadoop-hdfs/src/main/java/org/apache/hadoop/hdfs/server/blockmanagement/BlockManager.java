@@ -3479,10 +3479,11 @@ public class BlockManager implements BlockStatsMXBean {
 
     DatanodeDescriptor dn = storageInfo.getDatanodeDescriptor();
 
-    LOG.debug("Reported block {} on {} size {} replicaState = {}", block, dn,
+    LOG.info("Reported block {} on {} size {} replicaState = {}", block, dn,
         block.getNumBytes(), reportedState);
 
     if (shouldPostponeBlocksFromFuture && isGenStampInFuture(block)) {
+      LOG.info("Queue reported block");
       queueReportedBlock(storageInfo, block, reportedState,
           QUEUE_REASON_FUTURE_GENSTAMP);
       return null;
@@ -3494,6 +3495,7 @@ public class BlockManager implements BlockStatsMXBean {
       // If blocksMap does not contain reported block id,
       // The replica should be removed from Datanode, and set NumBytes to BlockCommand.No_ACK to
       // avoid useless report to NameNode from Datanode when complete to process it.
+      LOG.info("Blocks map does not contain the block id");
       Block invalidateBlock = new Block(block);
       invalidateBlock.setNumBytes(BlockCommand.NO_ACK);
       toInvalidate.add(invalidateBlock);
@@ -3506,12 +3508,14 @@ public class BlockManager implements BlockStatsMXBean {
 
     // Ignore replicas already scheduled to be removed from the DN or had been deleted
     if (invalidateBlocks.contains(dn, block) || storedBlock.isDeleted()) {
+      LOG.info("Replica already scheduled for repair");
       return storedBlock;
     }
 
     BlockToMarkCorrupt c = checkReplicaCorrupt(
         block, reportedState, storedBlock, ucState, dn);
     if (c != null) {
+      LOG.info("Block corrupted with reason {}", c.getReason());
       if (shouldPostponeBlocksFromFuture) {
         // If the block is an out-of-date generation stamp or state,
         // but we're the standby, we shouldn't treat it as corrupt,
@@ -3529,6 +3533,7 @@ public class BlockManager implements BlockStatsMXBean {
     }
 
     if (isBlockUnderConstruction(storedBlock, ucState, reportedState)) {
+      LOG.info("Block under construction");
       toUC.add(new StatefulBlockInfo(storedBlock,
           new Block(block), reportedState));
       return storedBlock;
@@ -3539,6 +3544,7 @@ public class BlockManager implements BlockStatsMXBean {
     if (reportedState == ReplicaState.FINALIZED
         && (storedBlock.findStorageInfo(storageInfo) == -1 ||
         corruptReplicas.isReplicaCorrupt(storedBlock, dn))) {
+      LOG.info("Block is finalized");
       toAdd.add(new BlockInfoToAdd(storedBlock, new Block(block)));
     }
     return storedBlock;
@@ -3869,8 +3875,13 @@ public class BlockManager implements BlockStatsMXBean {
     int numUsableReplicas = num.liveReplicas() +
         num.decommissioning() + num.liveEnteringMaintenanceReplicas();
 
+    LOG.info("Block stats numLiveReplicas = {}, numCurrentReplica = {}, " +
+        "numUsableReplicas = {}",
+        numLiveReplicas, numCurrentReplica, numUsableReplicas);
+
     if(storedBlock.getBlockUCState() == BlockUCState.COMMITTED &&
         hasMinStorage(storedBlock, numUsableReplicas)) {
+      LOG.info("Calling completeBlock");
       addExpectedReplicasToPending(storedBlock);
       completeBlock(storedBlock, null, false);
     } else if (storedBlock.isComplete() && result == AddBlockResult.ADDED) {
@@ -3894,6 +3905,7 @@ public class BlockManager implements BlockStatsMXBean {
 
     // handle low redundancy/extra redundancy
     short fileRedundancy = getExpectedRedundancyNum(storedBlock);
+    LOG.info("Stored block still needs reconstruction? {}", isNeededReconstruction(storedBlock, num, pendingNum));
     if (!isNeededReconstruction(storedBlock, num, pendingNum)) {
       neededReconstruction.remove(storedBlock, numCurrentReplica,
           num.readOnlyReplicas(), num.outOfServiceReplicas(), fileRedundancy);
@@ -4597,6 +4609,7 @@ public class BlockManager implements BlockStatsMXBean {
     if (storedBlock != null &&
         block.getGenerationStamp() == storedBlock.getGenerationStamp()) {
       if (pendingReconstruction.decrement(storedBlock, storageInfo)) {
+        LOG.info("Removed block {} from pending reconstruction queue", storedBlock.getBlockId());
         NameNode.getNameNodeMetrics().incSuccessfulReReplications();
       }
     }
@@ -4633,6 +4646,7 @@ public class BlockManager implements BlockStatsMXBean {
       return false;
     }
 
+    LOG.info("Calling processReportedBlock");
     processReportedBlock(storageInfo, block, reportedState, toAdd, toInvalidate,
         toCorrupt, toUC);
     // the block is only in one of the to-do lists
@@ -4737,10 +4751,12 @@ public class BlockManager implements BlockStatsMXBean {
         deleted++;
         break;
       case RECEIVED_BLOCK:
+        LOG.info("RECEIVED block {}", rdbi.getStatus());
         addBlock(storageInfo, rdbi.getBlock(), rdbi.getDelHints());
         received++;
         break;
       case RECEIVING_BLOCK:
+        LOG.info("RECEIVing block {}", rdbi.getStatus());
         receiving++;
         processAndHandleReportedBlock(storageInfo, rdbi.getBlock(),
                                       ReplicaState.RBW, null);

@@ -29,6 +29,8 @@ import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.BlockType;
 import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.BlockUCState;
 import org.apache.hadoop.util.LightWeightGSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.hadoop.hdfs.server.namenode.INodeId.INVALID_INODE_ID;
 
@@ -41,6 +43,8 @@ import static org.apache.hadoop.hdfs.server.namenode.INodeId.INVALID_INODE_ID;
 @InterfaceAudience.Private
 public abstract class BlockInfo extends Block
     implements LightWeightGSet.LinkedElement {
+
+  private Logger LOG = LoggerFactory.getLogger(BlockInfo.class);
 
   public static final BlockInfo[] EMPTY_ARRAY = {};
 
@@ -398,6 +402,8 @@ public abstract class BlockInfo extends Block
    */
   public void convertToBlockUnderConstruction(BlockUCState s,
       DatanodeStorageInfo[] targets) {
+    LOG.info("convertToBlockUnderConstruction to state {} for block {}", s, this.getBlockId());
+    Thread.dumpStack();
     if (isComplete()) {
       uc = new BlockUnderConstructionFeature(this, s, targets,
           this.getBlockType());
