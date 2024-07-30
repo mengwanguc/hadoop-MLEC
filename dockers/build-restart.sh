@@ -10,7 +10,7 @@ case $yn in y )
 esac
 
 # Build docker
-docker build --no-cache -t hdfs-runtime:latest -f Dockerfile ..
+cd dockers && docker build --no-cache -t hdfs-runtime:latest -f Dockerfile ..
 
 # Restart docker-compose
 docker compose stop && docker-compose rm -f
