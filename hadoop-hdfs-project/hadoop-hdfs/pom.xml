@@ -223,6 +223,11 @@ https://maven.apache.org/xsd/maven-4.0.0.xsd">
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-annotations</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.mlec.libzfs</groupId>
+      <artifactId>library</artifactId>
+      <version>1.0</version>
+    </dependency>
   </dependencies>
 
   <build>

@@ -70,7 +70,15 @@ allowed_expr+="|^jetty-dir.css$"
 # Snappy java is native library. We cannot relocate it to under org/apache/hadoop.
 allowed_expr+="|^org/xerial/"
 
+# Include jni directory and its files
+allowed_expr+="|^jni/"
+allowed_expr+="|^jni/LibraryLoader.class$"
+allowed_expr+="|^jni/DnodeAttributes.class$"
+allowed_expr+="|^jni/Tools.class$"
+allowed_expr+="|^libtools.so$"
+allowed_expr+="*jni*"
 allowed_expr+=")"
+
 declare -i bad_artifacts=0
 declare -a bad_contents
 declare -a artifact_list

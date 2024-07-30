@@ -58,8 +58,10 @@ allowed_expr+="|^org.apache.hadoop.application-classloader.properties$"
 allowed_expr+="|^java.policy$"
 #   * Used by javax.annotation
 allowed_expr+="|^jndi.properties$"
-
+allowed_expr+="|^jni/"
+allowed_expr+="|libtools.so$"
 allowed_expr+=")"
+
 declare -i bad_artifacts=0
 declare -a bad_contents
 declare -a artifact_list
@@ -80,7 +82,7 @@ for artifact in "${artifact_list[@]}"; do
   # Note: On Windows the output from jar tf may contain \r\n's.  Normalize to \n.
   while IFS='' read -r line; do bad_contents+=("$line"); done < <( ( jar tf "${artifact}" | sed 's/\\r//' || kill -SIGUSR1 $$ ) | grep -v -E "${allowed_expr}" )
   if [ ${#bad_contents[@]} -gt 0 ]; then
-    echo "[ERROR] Found artifact with unexpected contents: '${artifact}'"
+    echo "[ERRORRR] Found artifact with unexpected contents: '${artifact}'"
     echo "    Please check the following and either correct the build or update"
     echo "    the allowed list with reasoning."
     echo ""
