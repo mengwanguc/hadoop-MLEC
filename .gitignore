@@ -62,3 +62,5 @@ report.html
 
 
 .mvn
+*.log
+*.random
