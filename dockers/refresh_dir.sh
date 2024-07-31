@@ -1,6 +1,9 @@
 #!/bin/bash
 
-for i in {1..3}; do
+# /data/dataNode1 is special because its a zfs mount
+rm -rf /data/dataNode1/*
+
+for i in {2..3}; do
   echo "$i"
   rm -rf "/data/dataNode$i"
   rm -rf "/data/recon_buffer$i"

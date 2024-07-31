@@ -32,15 +32,15 @@ ENV_VARS = {
 
 processes = {}
 
-def run_command(command, env=None):
+def run_command(command, env=None, cwd=None):
     process = subprocess.Popen(
         command,
-        stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        env=env
+        env=env,
+        cwd=cwd
     )
     output, _ = process.communicate()
-    print(output.decode('utf-8'))
+    # print(output.decode('utf-8'))
     return process.returncode
 
 def start_node(node_name):
@@ -81,6 +81,29 @@ if __name__ == "__main__":
         print("refresh.sh script failed. Exiting.")
         sys.exit(1)
 
+    # Ask the user whether to build the code before starting the nodes
+    build_code = input("Do you want to build the code before starting the nodes? (y/n): ").strip().lower()
+
+    if build_code == 'y':
+        # Run Maven build commands before starting the nodes
+        if run_command(['mvn', '-nsu', '-T', '24', 'clean', 'package', 'install', '-Pdist', '-DskipTests', '-Dtar', '-Dmaven.javadoc.skip=true'], cwd='hadoop-common-project') != 0:
+            print("Maven build for hadoop-common-project failed. Exiting.")
+            sys.exit(1)
+
+        if run_command(['mvn', '-nsu', '-T', '24', 'clean', 'package', '-Pdist', '-DskipTests', '-Dtar', '-Dmaven.javadoc.skip=true'], cwd='hadoop-hdfs-project') != 0:
+            print("Maven build for hadoop-hdfs-project failed. Exiting.")
+            sys.exit(1)
+
+        if run_command(['mvn', '-nsu', '-T', '24', 'clean', 'package', '-Pdist', '-DskipTests', '-Dtar', '-Dmaven.javadoc.skip=true'], cwd='hadoop-dist') != 0:
+            print("Maven build for hadoop-dist failed. Exiting.")
+            sys.exit(1)
+
+
+        # Untar the newest Hadoop built file into /opt/hadoop
+        if run_command(['tar', '-xzf', 'hadoop-dist/target/hadoop-3.5.0-SNAPSHOT.tar.gz', '-C', '/opt/hadoop']) != 0:
+            print("Untar of Hadoop distribution failed. Exiting.")
+            sys.exit(1)
+
     # Run namenode format command with namenode environment variables
     namenode_env = os.environ.copy()
     if 'namenode' in ENV_VARS:
@@ -95,6 +118,11 @@ if __name__ == "__main__":
     start_node('dn1')
     start_node('dn2')
     start_node('dn3')
+
+    # Run seed test
+    if run_command(COMMANDS['dockers/seed_test.sh test']) != 0:
+        print("Seed test failed. Exiting.")
+        sys.exit(1)
 
     # Wait for all processes to complete
     for process in processes.values():
