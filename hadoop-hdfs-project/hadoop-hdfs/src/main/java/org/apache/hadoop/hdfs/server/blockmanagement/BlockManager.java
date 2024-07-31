@@ -4729,7 +4729,6 @@ public class BlockManager implements BlockStatsMXBean {
       case DELETED_BLOCK:
         // Get the datanode that we are deleting the block from
         LOG.info("Deleting block from data node {}", node.getHostName());
-        LOG.info("Datanode has blocks");
         List<ZfsFailureTuple> failedBlocksIds = ZfsBlockManagement
           .getDataNodeZfsFailedStripes(node);
 
