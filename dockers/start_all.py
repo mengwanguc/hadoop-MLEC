@@ -59,9 +59,10 @@ def start_node(node_name):
     processes[node_name] = process
 
     def stream_output():
-        for line in iter(process.stdout.readline, b''):
-            sys.stdout.write(f'{COLORS[node_name]}[{node_name}] {COLORS["reset"]}{line.decode("utf-8")}')
-            log_file.write(line.decode('utf-8'))
+        with open(log_file_path, 'w') as log_file:
+            for line in iter(process.stdout.readline, b''):
+                sys.stdout.write(f'{COLORS[node_name]}[{node_name}] {COLORS["reset"]}{line.decode("utf-8")}')
+                log_file.write(line.decode('utf-8'))
 
     thread = threading.Thread(target=stream_output)
     thread.start()

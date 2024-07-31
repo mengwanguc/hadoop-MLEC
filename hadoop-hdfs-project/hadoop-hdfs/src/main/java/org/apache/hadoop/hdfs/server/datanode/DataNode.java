@@ -2732,7 +2732,7 @@ public class DataNode extends ReconfigurableBase
     List<DnodeAttributes> dnodes = zfsBinding.getFailedChunks("pool");
     LOG.warn("Printing ZFS datanode info");
     for (DnodeAttributes dn : dnodes) {
-      LOG.info("This datanode contains following zfs dn {}", dn);
+      LOG.info("This datanode containsss following zfs dn {}", dn.toString());
     }
     LOG.warn("============");
 
