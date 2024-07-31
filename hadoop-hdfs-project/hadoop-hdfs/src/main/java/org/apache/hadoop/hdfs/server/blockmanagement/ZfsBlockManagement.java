@@ -1,5 +1,7 @@
 package org.apache.hadoop.hdfs.server.blockmanagement;
 
+import jni.DnodeAttributes;
+import jni.Tools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -5,7 +5,7 @@
     </property>
     <property>
         <name>dfs.datanode.data.dir</name>
-        <value>[ZFS]/data/dataNode1,[ZFS_RECON_BUFFER]/data/recon_buffer</value>
+        <value>[ZFS]/data/dataNode1,[ZFS_RECON_BUFFER]/data/recon_buffer1</value>
     </property>
     <property>
         <name>dfs.namenode.heartbeat.recheck-interval</name>

@@ -100,6 +100,8 @@ import static org.apache.hadoop.util.ExitUtil.terminate;
 import static org.apache.hadoop.util.Preconditions.checkNotNull;
 import static org.apache.hadoop.util.Time.now;
 
+import jni.DnodeAttributes;
+import jni.Tools;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.DF;
 import org.apache.hadoop.fs.DU;
@@ -2725,12 +2727,23 @@ public class DataNode extends ReconfigurableBase
                                      : DatanodeProtocol.FATAL_DISK_ERROR;  
     metrics.incrVolumeFailures(failedNumber);
 
+    // Get MLEC failure info
+    Tools zfsBinding = new Tools();
+    List<DnodeAttributes> dnodes = zfsBinding.getFailedChunks("pool");
+    LOG.warn("Printing ZFS datanode info");
+    for (DnodeAttributes dn : dnodes) {
+      LOG.info("This datanode contains following zfs dn {}", dn);
+    }
+    LOG.warn("============");
+
     //inform NameNodes
     for(BPOfferService bpos: blockPoolManager.getAllNamenodeThreads()) {
+      LOG.info("Try sending error report");
       bpos.trySendErrorReport(dpError, failedVolumes);
     }
     
     if(hasEnoughResources) {
+      LOG.info("Scheduling all block report");
       scheduleAllBlockReport(0);
       return; // do not shutdown
     }

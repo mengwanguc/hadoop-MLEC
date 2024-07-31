@@ -37,7 +37,7 @@ services:
     networks:
       - intra
     deploy:
-      replicas: 4
+      replicas: 3
 
 networks:
     intra:

@@ -1,11 +1,23 @@
 <configuration>
     <property>
+        <name>dfs.datanode.address</name>
+        <value>0.0.0.0:9666</value>
+    </property>
+    <property>
+        <name>dfs.datanode.http.address</name>
+        <value>0.0.0.0:9664</value>
+    </property>
+    <property>
+        <name>dfs.datanode.ipc.address</name>
+        <value>0.0.0.0:9667</value>
+    </property>
+    <property>
         <name>dfs.namenode.name.dir</name>
         <value>/data/nameNode</value>
     </property>
     <property>
         <name>dfs.datanode.data.dir</name>
-        <value>[ZFS]/data/dataNode1,[ZFS_RECON_BUFFER]/data/recon_buffer</value>
+        <value>[ZFS]/data/dataNode3,[ZFS_RECON_BUFFER]/data/recon_buffer3</value>
     </property>
     <property>
         <name>dfs.namenode.heartbeat.recheck-interval</name>

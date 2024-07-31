@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 read -p "Do you want to build HDFS source code? (y/n) " yn
 
 case $yn in y )
@@ -13,7 +15,7 @@ esac
 cd dockers && docker build --no-cache -t hdfs-runtime:latest -f Dockerfile ..
 
 # Restart docker-compose
-docker compose stop && docker-compose rm -f
+docker compose stop && docker compose rm -f
 
 # Start the docker-compose
 docker compose up -d

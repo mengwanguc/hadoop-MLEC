@@ -4727,8 +4727,6 @@ public class BlockManager implements BlockStatsMXBean {
     for (ReceivedDeletedBlockInfo rdbi : srdb.getBlocks()) {
       switch (rdbi.getStatus()) {
       case DELETED_BLOCK:
-        LOG.info("Deleting block");
-
         // Get the datanode that we are deleting the block from
         LOG.info("Deleting block from data node {}", node.getHostName());
         LOG.info("Datanode has blocks");
