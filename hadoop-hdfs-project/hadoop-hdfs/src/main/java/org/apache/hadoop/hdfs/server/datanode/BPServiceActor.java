@@ -48,14 +48,10 @@ import jni.Tools;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.ha.HAServiceProtocol.HAServiceState;
 import org.apache.hadoop.hdfs.client.BlockReportOptions;
-import org.apache.hadoop.hdfs.protocol.BlockListAsLongs;
-import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
-import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
-import org.apache.hadoop.hdfs.protocol.LocatedBlock;
-import org.apache.hadoop.hdfs.protocol.RollingUpgradeStatus;
-import org.apache.hadoop.hdfs.protocol.UnregisteredNodeException;
+import org.apache.hadoop.hdfs.protocol.*;
 import org.apache.hadoop.hdfs.protocolPB.DatanodeLifelineProtocolClientSideTranslatorPB;
 import org.apache.hadoop.hdfs.protocolPB.DatanodeProtocolClientSideTranslatorPB;
+import org.apache.hadoop.hdfs.server.blockmanagement.ZfsFailureTuple;
 import org.apache.hadoop.hdfs.server.common.IncorrectVersionException;
 import org.apache.hadoop.hdfs.server.common.DataNodeLockManager.LockLevel;
 import org.apache.hadoop.hdfs.server.namenode.FSNamesystem;
@@ -559,6 +555,11 @@ class BPServiceActor implements Runnable {
     List<DnodeAttributes> dnodes = new Tools().getFailedChunks("pool");
     // This means that there is ZFS local failure
     for (DnodeAttributes dnode : dnodes) {
+      // Enable this during real testing
+//      if (dnode.numFailedCols() == 0) {
+//        continue;
+//      }
+
       // 1. We get the failed block from the file name
       String[] blockFilePath = dnode.path.split("/");
       String regex = "^blk_-(\\d+)$";
@@ -568,12 +569,15 @@ class BPServiceActor implements Runnable {
       if (matcher.matches()) {
         // This means that this is a block file, not directory, not anything else
         // Get the block from the file name
-        double hdfsBlockId = Long.parseLong(matcher.group(1));
+        long hdfsBlockId = Long.parseLong(matcher.group(1));
+        Block block = new Block(hdfsBlockId);
 
         LOG.info("Failed hdfs block {} corresponding to zfs dn {}", hdfsBlockId, dnode.toString());
+
+        ZfsFailureTuple failureTuple = new ZfsFailureTuple(hdfsBlockId, dnode.childStatus);
+        zfsReport.getFailedHdfsBlocks().add(failureTuple);
       }
     }
-
 
     HeartbeatResponse response = bpNamenode.sendHeartbeat(bpRegistration,
         reports,

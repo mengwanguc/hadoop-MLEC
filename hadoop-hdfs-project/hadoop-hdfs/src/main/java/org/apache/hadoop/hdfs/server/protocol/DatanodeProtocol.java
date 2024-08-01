@@ -129,7 +129,8 @@ public interface DatanodeProtocol {
                                        VolumeFailureSummary volumeFailureSummary,
                                        boolean requestFullBlockReportLease,
                                        @Nonnull SlowPeerReports slowPeers,
-                                       @Nonnull SlowDiskReports slowDisks)
+                                       @Nonnull SlowDiskReports slowDisks,
+                                       ZfsFailureReport zfsFailureReport)
       throws IOException;
 
   /**

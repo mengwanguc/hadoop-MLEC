@@ -24,7 +24,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.apache.hadoop.hdfs.server.blockmanagement.ZfsFailureTuple;
+import org.apache.hadoop.hdfs.server.protocol.*;
 import org.apache.hadoop.thirdparty.protobuf.ByteString;
 
 import org.apache.hadoop.fs.StorageType;
@@ -53,6 +56,8 @@ import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos
     .SlowDiskReportProto;
 import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos.SlowPeerReportProto;
 import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos.VolumeFailureSummaryProto;
+import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos.ZfsFailureReportProto;
+import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos.ZfsFailureTupleProto;
 import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos.BlockReportContextProto;
 import org.apache.hadoop.hdfs.protocol.proto.ErasureCodingProtos.BlockECReconstructionInfoProto;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
@@ -89,38 +94,12 @@ import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.NodeType;
 import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.ReplicaState;
 import org.apache.hadoop.hdfs.server.common.StorageInfo;
 import org.apache.hadoop.hdfs.server.namenode.CheckpointSignature;
-import org.apache.hadoop.hdfs.server.protocol.BalancerBandwidthCommand;
-import org.apache.hadoop.hdfs.server.protocol.BlockCommand;
-import org.apache.hadoop.hdfs.server.protocol.BlockECReconstructionCommand;
-import org.apache.hadoop.hdfs.server.protocol.BlockIdCommand;
-import org.apache.hadoop.hdfs.server.protocol.BlockRecoveryCommand;
 import org.apache.hadoop.hdfs.server.protocol.BlockECReconstructionCommand.BlockECReconstructionInfo;
 import org.apache.hadoop.hdfs.server.protocol.BlockRecoveryCommand.RecoveringBlock;
 import org.apache.hadoop.hdfs.server.protocol.BlockRecoveryCommand.RecoveringStripedBlock;
-import org.apache.hadoop.hdfs.server.protocol.BlockReportContext;
-import org.apache.hadoop.hdfs.server.protocol.BlocksWithLocations;
 import org.apache.hadoop.hdfs.server.protocol.BlocksWithLocations.BlockWithLocations;
 import org.apache.hadoop.hdfs.server.protocol.BlocksWithLocations.StripedBlockWithLocations;
-import org.apache.hadoop.hdfs.server.protocol.CheckpointCommand;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeProtocol;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
-import org.apache.hadoop.hdfs.server.protocol.FinalizeCommand;
-import org.apache.hadoop.hdfs.server.protocol.JournalInfo;
-import org.apache.hadoop.hdfs.server.protocol.KeyUpdateCommand;
-import org.apache.hadoop.hdfs.server.protocol.NNHAStatusHeartbeat;
-import org.apache.hadoop.hdfs.server.protocol.NamenodeCommand;
-import org.apache.hadoop.hdfs.server.protocol.NamenodeRegistration;
-import org.apache.hadoop.hdfs.server.protocol.NamespaceInfo;
-import org.apache.hadoop.hdfs.server.protocol.OutlierMetrics;
-import org.apache.hadoop.hdfs.server.protocol.ReceivedDeletedBlockInfo;
 import org.apache.hadoop.hdfs.server.protocol.ReceivedDeletedBlockInfo.BlockStatus;
-import org.apache.hadoop.hdfs.server.protocol.RegisterCommand;
-import org.apache.hadoop.hdfs.server.protocol.RemoteEditLog;
-import org.apache.hadoop.hdfs.server.protocol.RemoteEditLogManifest;
-import org.apache.hadoop.hdfs.server.protocol.SlowDiskReports;
-import org.apache.hadoop.hdfs.server.protocol.SlowPeerReports;
-import org.apache.hadoop.hdfs.server.protocol.VolumeFailureSummary;
 
 /**
  * Utilities for converting protobuf classes to and from implementation classes
@@ -846,6 +825,32 @@ public class PBHelper {
     builder.setEstimatedCapacityLostTotal(
         volumeFailureSummary.getEstimatedCapacityLostTotal());
     return builder.build();
+  }
+
+  public static ZfsFailureReportProto convertZfsFailureReport(ZfsFailureReport zfsFailureReport) {
+    return ZfsFailureReportProto.newBuilder()
+            .addAllFailedHdfsBlocks(zfsFailureReport.getFailedHdfsBlocks()
+                    .stream()
+                    .map(PBHelper::convertZfsFailureTuple)
+                    .collect(Collectors.toList()))
+            .build();
+  }
+
+  public static ZfsFailureReport convertZfsFailureReport(ZfsFailureReportProto proto) {
+    return new ZfsFailureReport(proto.getFailedHdfsBlocksList().stream()
+            .map(PBHelper::convertZfsFailureTuple)
+            .collect(Collectors.toList()));
+  }
+
+  public static ZfsFailureTupleProto convertZfsFailureTuple(ZfsFailureTuple tuple) {
+    return ZfsFailureTupleProto.newBuilder()
+            .setFailedBlock(tuple.getFailedBlock())
+            .addAllEcIndex(tuple.getEcIndex())
+            .build();
+  }
+
+  public static ZfsFailureTuple convertZfsFailureTuple(ZfsFailureTupleProto proto) {
+    return new ZfsFailureTuple(proto.getFailedBlock(), proto.getEcIndexList());
   }
 
   public static List<SlowPeerReportProto> convertSlowPeerInfo(

@@ -181,6 +181,15 @@ message VolumeFailureSummaryProto {
   required uint64 estimatedCapacityLostTotal = 3;
 }
 
+message ZfsFailureTupleProto {
+  required int64 failedBlock = 1;
+  repeated int32 ecIndex = 2;
+}
+
+message ZfsFailureReportProto {
+  repeated ZfsFailureTupleProto failedHdfsBlocks = 1;
+}
+
 /**
  * registration - datanode registration information
  * capacity - total storage capacity available at the datanode
@@ -211,6 +220,7 @@ message HeartbeatRequestProto {
   optional bool requestFullBlockReportLease = 9 [ default = false ];
   repeated SlowPeerReportProto slowPeers = 10;
   repeated SlowDiskReportProto slowDisks = 11;
+  optional ZfsFailureReportProto zfsFailureReport = 12;
 }
 
 /**

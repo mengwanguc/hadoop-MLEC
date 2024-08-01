@@ -11,12 +11,12 @@ public class ZfsFailureTuple {
     // Which HDFS block failed
     private Long failedBlock;
 
-    // Which chunks in the HDFS block has failed
+    // Which chunks in the HDFS block has failed, if non-zero it means failed
     private List<Integer> ecIndex;
     // ----------------------------------------------
 
 
-    // After grabbing from ZFS API, we will find the DSI from namenode and populate this field
+    // After grabbing from ZFS API, we will find the DSI from name node and populate this field
     // This is for convenience
     private DatanodeStorageInfo datanodeStorageInfo;
 

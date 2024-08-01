@@ -31,6 +31,7 @@ import org.apache.hadoop.hdfs.protocol.DatanodeID;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.RollingUpgradeStatus;
+import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos;
 import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos.BlockReceivedAndDeletedRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos.BlockReportRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos.BlockReportResponseProto;
@@ -47,20 +48,8 @@ import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos.ReportBadBlo
 import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos.StorageBlockReportProto;
 import org.apache.hadoop.hdfs.protocol.proto.DatanodeProtocolProtos.StorageReceivedDeletedBlocksProto;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsServerProtos.VersionRequestProto;
-import org.apache.hadoop.hdfs.server.protocol.BlockReportContext;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeProtocol;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
-import org.apache.hadoop.hdfs.server.protocol.HeartbeatResponse;
-import org.apache.hadoop.hdfs.server.protocol.NamespaceInfo;
+import org.apache.hadoop.hdfs.server.protocol.*;
 import org.apache.hadoop.hdfs.server.protocol.NamespaceInfo.Capability;
-import org.apache.hadoop.hdfs.server.protocol.ReceivedDeletedBlockInfo;
-import org.apache.hadoop.hdfs.server.protocol.SlowDiskReports;
-import org.apache.hadoop.hdfs.server.protocol.SlowPeerReports;
-import org.apache.hadoop.hdfs.server.protocol.StorageBlockReport;
-import org.apache.hadoop.hdfs.server.protocol.StorageReceivedDeletedBlocks;
-import org.apache.hadoop.hdfs.server.protocol.StorageReport;
-import org.apache.hadoop.hdfs.server.protocol.VolumeFailureSummary;
 import org.apache.hadoop.ipc.ProtobufRpcEngine2;
 import org.apache.hadoop.ipc.ProtocolMetaInterface;
 import org.apache.hadoop.ipc.RPC;
@@ -72,6 +61,7 @@ import org.apache.hadoop.classification.VisibleForTesting;
 import org.apache.hadoop.thirdparty.protobuf.RpcController;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import static org.apache.hadoop.ipc.internal.ShadedProtobufHelper.ipc;
 
@@ -128,15 +118,28 @@ public class DatanodeProtocolClientSideTranslatorPB implements
     return PBHelper.convert(resp.getRegistration());
   }
 
+  public HeartbeatResponse sendHeartbeat(DatanodeRegistration registration,
+                                         StorageReport[] reports, long cacheCapacity, long cacheUsed,
+                                         int xmitsInProgress, int xceiverCount, int failedVolumes,
+                                         VolumeFailureSummary volumeFailureSummary,
+                                         boolean requestFullBlockReportLease,
+                                         @Nonnull SlowPeerReports slowPeers,
+                                         @Nonnull SlowDiskReports slowDisks) throws IOException {
+    return this.sendHeartbeat(
+            registration, reports, cacheCapacity, cacheUsed,
+            xmitsInProgress, xceiverCount, failedVolumes,
+            volumeFailureSummary, requestFullBlockReportLease, slowPeers, slowDisks, null);
+  }
+
   @Override
   public HeartbeatResponse sendHeartbeat(DatanodeRegistration registration,
-      StorageReport[] reports, long cacheCapacity, long cacheUsed,
-      int xmitsInProgress, int xceiverCount, int failedVolumes,
-      VolumeFailureSummary volumeFailureSummary,
-      boolean requestFullBlockReportLease,
-      @Nonnull SlowPeerReports slowPeers,
-      @Nonnull SlowDiskReports slowDisks)
-          throws IOException {
+                                         StorageReport[] reports, long cacheCapacity, long cacheUsed,
+                                         int xmitsInProgress, int xceiverCount, int failedVolumes,
+                                         VolumeFailureSummary volumeFailureSummary,
+                                         boolean requestFullBlockReportLease,
+                                         @Nonnull SlowPeerReports slowPeers,
+                                         @Nonnull SlowDiskReports slowDisks,
+                                         ZfsFailureReport zfsFailureReport) throws IOException {
     HeartbeatRequestProto.Builder builder = HeartbeatRequestProto.newBuilder()
         .setRegistration(PBHelper.convert(registration))
         .setXmitsInProgress(xmitsInProgress).setXceiverCount(xceiverCount)
@@ -158,6 +161,9 @@ public class DatanodeProtocolClientSideTranslatorPB implements
     }
     if (slowDisks.haveSlowDisks()) {
       builder.addAllSlowDisks(PBHelper.convertSlowDiskInfo(slowDisks));
+    }
+    if (zfsFailureReport != null) {
+      builder.setZfsFailureReport(PBHelper.convertZfsFailureReport(zfsFailureReport));
     }
 
     HeartbeatResponseProto resp;

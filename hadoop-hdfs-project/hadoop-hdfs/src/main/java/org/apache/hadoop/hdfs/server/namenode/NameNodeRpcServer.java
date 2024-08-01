@@ -164,28 +164,7 @@ import org.apache.hadoop.hdfs.server.common.IncorrectVersionException;
 import org.apache.hadoop.hdfs.server.namenode.NameNode.OperationCategory;
 import org.apache.hadoop.hdfs.server.namenode.metrics.NameNodeMetrics;
 import org.apache.hadoop.hdfs.server.namenode.sps.StoragePolicySatisfyManager;
-import org.apache.hadoop.hdfs.server.protocol.BlockReportContext;
-import org.apache.hadoop.hdfs.server.protocol.BlocksWithLocations;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeProtocol;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeStorageReport;
-import org.apache.hadoop.hdfs.server.protocol.FinalizeCommand;
-import org.apache.hadoop.hdfs.server.protocol.HeartbeatResponse;
-import org.apache.hadoop.hdfs.server.protocol.InvalidBlockReportLeaseException;
-import org.apache.hadoop.hdfs.server.protocol.NamenodeCommand;
-import org.apache.hadoop.hdfs.server.protocol.NamenodeProtocols;
-import org.apache.hadoop.hdfs.server.protocol.NamenodeRegistration;
-import org.apache.hadoop.hdfs.server.protocol.NamespaceInfo;
-import org.apache.hadoop.hdfs.server.protocol.NodeRegistration;
-import org.apache.hadoop.hdfs.server.protocol.RegisterCommand;
-import org.apache.hadoop.hdfs.server.protocol.RemoteEditLogManifest;
-import org.apache.hadoop.hdfs.server.protocol.SlowDiskReports;
-import org.apache.hadoop.hdfs.server.protocol.SlowPeerReports;
-import org.apache.hadoop.hdfs.server.protocol.StorageBlockReport;
-import org.apache.hadoop.hdfs.server.protocol.StorageReceivedDeletedBlocks;
-import org.apache.hadoop.hdfs.server.protocol.StorageReport;
-import org.apache.hadoop.hdfs.server.protocol.VolumeFailureSummary;
+import org.apache.hadoop.hdfs.server.protocol.*;
 import org.apache.hadoop.io.EnumSetWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.ipc.ProtobufRpcEngine2;
@@ -229,7 +208,6 @@ import org.slf4j.Logger;
 
 import org.apache.hadoop.classification.VisibleForTesting;
 import org.apache.hadoop.thirdparty.protobuf.BlockingService;
-import org.apache.hadoop.hdfs.server.protocol.DisallowedDatanodeException;
 
 import javax.annotation.Nonnull;
 
@@ -1613,19 +1591,20 @@ public class NameNodeRpcServer implements NamenodeProtocols {
 
   @Override // DatanodeProtocol
   public HeartbeatResponse sendHeartbeat(DatanodeRegistration nodeReg,
-      StorageReport[] report, long dnCacheCapacity, long dnCacheUsed,
-      int xmitsInProgress, int xceiverCount,
-      int failedVolumes, VolumeFailureSummary volumeFailureSummary,
-      boolean requestFullBlockReportLease,
-      @Nonnull SlowPeerReports slowPeers,
-      @Nonnull SlowDiskReports slowDisks)
+                                         StorageReport[] report, long dnCacheCapacity, long dnCacheUsed,
+                                         int xmitsInProgress, int xceiverCount,
+                                         int failedVolumes, VolumeFailureSummary volumeFailureSummary,
+                                         boolean requestFullBlockReportLease,
+                                         @Nonnull SlowPeerReports slowPeers,
+                                         @Nonnull SlowDiskReports slowDisks,
+                                         ZfsFailureReport zfsFailureReport)
           throws IOException {
     checkNNStartup();
     verifyRequest(nodeReg);
     return namesystem.handleHeartbeat(nodeReg, report,
         dnCacheCapacity, dnCacheUsed, xceiverCount, xmitsInProgress,
         failedVolumes, volumeFailureSummary, requestFullBlockReportLease,
-        slowPeers, slowDisks);
+        slowPeers, slowDisks, zfsFailureReport);
   }
 
   @Override // DatanodeProtocol

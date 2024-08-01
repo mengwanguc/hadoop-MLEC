@@ -114,6 +114,7 @@ import static org.apache.hadoop.ha.HAServiceProtocol.HAServiceState.OBSERVER;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
 
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockInfoStriped;
+import org.apache.hadoop.hdfs.server.protocol.*;
 import org.apache.hadoop.thirdparty.com.google.common.collect.Maps;
 import org.apache.hadoop.hdfs.server.namenode.snapshot.SnapshotDeletionGc;
 import org.apache.hadoop.thirdparty.protobuf.ByteString;
@@ -128,7 +129,6 @@ import org.apache.hadoop.hdfs.protocol.SnapshotDiffReportListing;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.server.common.ECTopologyVerifier;
 import org.apache.hadoop.hdfs.server.namenode.metrics.ReplicatedBlocksMBean;
-import org.apache.hadoop.hdfs.server.protocol.SlowDiskReports;
 import org.apache.hadoop.ipc.ObserverRetryOnActiveException;
 import org.apache.hadoop.util.Time;
 import org.apache.hadoop.util.Daemon;
@@ -301,19 +301,6 @@ import org.apache.hadoop.hdfs.server.namenode.top.TopAuditLogger;
 import org.apache.hadoop.hdfs.server.namenode.top.TopConf;
 import org.apache.hadoop.hdfs.server.namenode.top.metrics.TopMetrics;
 import org.apache.hadoop.hdfs.server.namenode.top.window.RollingWindowManager;
-import org.apache.hadoop.hdfs.server.protocol.BlocksWithLocations;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeStorageReport;
-import org.apache.hadoop.hdfs.server.protocol.HeartbeatResponse;
-import org.apache.hadoop.hdfs.server.protocol.NNHAStatusHeartbeat;
-import org.apache.hadoop.hdfs.server.protocol.NamenodeCommand;
-import org.apache.hadoop.hdfs.server.protocol.NamenodeRegistration;
-import org.apache.hadoop.hdfs.server.protocol.NamespaceInfo;
-import org.apache.hadoop.hdfs.server.protocol.SlowPeerReports;
-import org.apache.hadoop.hdfs.server.protocol.StorageReceivedDeletedBlocks;
-import org.apache.hadoop.hdfs.server.protocol.StorageReport;
-import org.apache.hadoop.hdfs.server.protocol.VolumeFailureSummary;
 import org.apache.hadoop.hdfs.util.LightWeightHashSet;
 import org.apache.hadoop.hdfs.web.JsonUtil;
 import org.apache.hadoop.io.IOUtils;
@@ -4427,7 +4414,8 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
       VolumeFailureSummary volumeFailureSummary,
       boolean requestFullBlockReportLease,
       @Nonnull SlowPeerReports slowPeers,
-      @Nonnull SlowDiskReports slowDisks)
+      @Nonnull SlowDiskReports slowDisks,
+      ZfsFailureReport zfsReport)
           throws IOException {
     readLock();
     try {
@@ -4435,7 +4423,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
       DatanodeCommand[] cmds = blockManager.getDatanodeManager().handleHeartbeat(
           nodeReg, reports, getBlockPoolId(), cacheCapacity, cacheUsed,
           xceiverCount, xmitsInProgress, failedVolumes, volumeFailureSummary,
-          slowPeers, slowDisks);
+          slowPeers, slowDisks, zfsReport);
       long blockReportLeaseId = 0;
       if (requestFullBlockReportLease) {
         blockReportLeaseId =  blockManager.requestBlockReportLeaseId(nodeReg);
