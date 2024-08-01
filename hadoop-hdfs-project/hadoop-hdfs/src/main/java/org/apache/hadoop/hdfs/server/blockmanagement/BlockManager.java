@@ -1277,6 +1277,8 @@ public class BlockManager implements BlockStatsMXBean {
             pendingNodes.toArray(new DatanodeStorageInfo[pendingNodes.size()]));
       }
     }
+
+
   }
 
   /**

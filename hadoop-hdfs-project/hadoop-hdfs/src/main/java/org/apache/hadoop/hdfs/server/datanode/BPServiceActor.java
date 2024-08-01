@@ -40,7 +40,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import jni.DnodeAttributes;
+import jni.Tools;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.ha.HAServiceProtocol.HAServiceState;
 import org.apache.hadoop.hdfs.client.BlockReportOptions;
@@ -55,19 +59,7 @@ import org.apache.hadoop.hdfs.protocolPB.DatanodeProtocolClientSideTranslatorPB;
 import org.apache.hadoop.hdfs.server.common.IncorrectVersionException;
 import org.apache.hadoop.hdfs.server.common.DataNodeLockManager.LockLevel;
 import org.apache.hadoop.hdfs.server.namenode.FSNamesystem;
-import org.apache.hadoop.hdfs.server.protocol.BlockReportContext;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
-import org.apache.hadoop.hdfs.server.protocol.DatanodeStorage;
-import org.apache.hadoop.hdfs.server.protocol.DisallowedDatanodeException;
-import org.apache.hadoop.hdfs.server.protocol.HeartbeatResponse;
-import org.apache.hadoop.hdfs.server.protocol.InvalidBlockReportLeaseException;
-import org.apache.hadoop.hdfs.server.protocol.NamespaceInfo;
-import org.apache.hadoop.hdfs.server.protocol.SlowDiskReports;
-import org.apache.hadoop.hdfs.server.protocol.SlowPeerReports;
-import org.apache.hadoop.hdfs.server.protocol.StorageBlockReport;
-import org.apache.hadoop.hdfs.server.protocol.StorageReport;
-import org.apache.hadoop.hdfs.server.protocol.VolumeFailureSummary;
+import org.apache.hadoop.hdfs.server.protocol.*;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.net.NetUtils;
@@ -543,10 +535,8 @@ class BPServiceActor implements Runnable {
     scheduler.scheduleNextHeartbeat();
     StorageReport[] reports =
         dn.getFSDataset().getStorageReports(bpos.getBlockPoolId());
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Sending heartbeat with " + reports.length +
+    LOG.debug("Sending heartbeat with " + reports.length +
                 " storage reports from service actor: " + this);
-    }
     
     final long now = monotonicNow();
     scheduler.updateLastHeartbeatTime(now);
@@ -563,6 +553,27 @@ class BPServiceActor implements Runnable {
         outliersReportDue && dnConf.diskStatsEnabled && dn.getDiskMetrics() != null ?
             SlowDiskReports.create(dn.getDiskMetrics().getDiskOutliersStats()) :
             SlowDiskReports.EMPTY_REPORT;
+
+    // MLEC stuff
+    ZfsFailureReport zfsReport = new ZfsFailureReport();
+    List<DnodeAttributes> dnodes = new Tools().getFailedChunks("pool");
+    // This means that there is ZFS local failure
+    for (DnodeAttributes dnode : dnodes) {
+      // 1. We get the failed block from the file name
+      String[] blockFilePath = dnode.path.split("/");
+      String regex = "^blk_-(\\d+)$";
+      Pattern pattern = Pattern.compile(regex);
+      Matcher matcher = pattern.matcher(blockFilePath[blockFilePath.length - 1]);
+
+      if (matcher.matches()) {
+        // This means that this is a block file, not directory, not anything else
+        // Get the block from the file name
+        double hdfsBlockId = Long.parseLong(matcher.group(1));
+
+        LOG.info("Failed hdfs block {} corresponding to zfs dn {}", hdfsBlockId, dnode.toString());
+      }
+    }
+
 
     HeartbeatResponse response = bpNamenode.sendHeartbeat(bpRegistration,
         reports,
