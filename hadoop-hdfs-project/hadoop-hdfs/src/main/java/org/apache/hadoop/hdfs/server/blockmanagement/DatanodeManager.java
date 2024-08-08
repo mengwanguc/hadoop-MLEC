@@ -1815,6 +1815,7 @@ public class DatanodeManager {
       @Nonnull SlowPeerReports slowPeers,
       @Nonnull SlowDiskReports slowDisks,
       ZfsFailureReport zfsFailureReport) throws IOException {
+
     final DatanodeDescriptor nodeinfo;
     try {
       nodeinfo = getDatanode(nodeReg);
@@ -1831,6 +1832,30 @@ public class DatanodeManager {
     if (nodeinfo == null || !nodeinfo.isRegistered()) {
       return new DatanodeCommand[]{RegisterCommand.REGISTER};
     }
+
+    // MLEC stuff
+    // 1. We get the BlockCollection from the ZFS failure report first
+    if (!zfsFailureReport.getFailedHdfsBlocks().isEmpty()) {
+      LOG.info("heartbeat contains {} zfs failed hdfs blocks", zfsFailureReport.getFailedHdfsBlocks().size());
+      LOG.info("=======");
+    }
+
+    zfsFailureReport.getFailedHdfsBlocks().forEach(zfsFailTuple -> {
+      final BlockInfo block = blockManager.getStoredBlock(new Block(zfsFailTuple.getFailedBlock()));
+
+      // 2. Check for the block redundancy
+      short expected = blockManager.getExpectedRedundancyNum(block);
+
+      final NumberReplicas n = blockManager.countNodes(block);
+      final int pending = blockManager.pendingReconstruction.getNumReplicas(block);
+      final boolean hasEnoughReplica = blockManager.hasEnoughEffectiveReplicas(block, n, pending);
+      LOG.info("Expected {}, num replica {}, pending {}, enough replica {}",
+              expected, n, pending, hasEnoughReplica);
+      if (!hasEnoughReplica) {
+        blockManager.scheduleReconstruction(block, 0);
+      }
+    });
+
     heartbeatManager.updateHeartbeat(nodeinfo, reports, cacheCapacity,
         cacheUsed, xceiverCount, failedVolumes, volumeFailureSummary);
 

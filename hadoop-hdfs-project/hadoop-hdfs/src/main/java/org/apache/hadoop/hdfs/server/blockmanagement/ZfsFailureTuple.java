@@ -1,10 +1,17 @@
 package org.apache.hadoop.hdfs.server.blockmanagement;
 
+import jni.DnodeAttributes;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockInfo;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ZfsFailureTuple {
+
+    private final static String regex = "^blk_(-?\\d+)$";
+    private final static Pattern pattern = Pattern.compile(regex);
 
     // ----------------------------------------------
     // The next two fields are from ZFS API
@@ -56,5 +63,16 @@ public class ZfsFailureTuple {
                 ", ecIndex=" + ecIndex +
                 ", datanodeStorageInfo=" + datanodeStorageInfo +
                 '}';
+    }
+
+    public static Optional<Matcher> isHdfsBlock(DnodeAttributes dnode) {
+        String[] blockFilePath = dnode.path.split("/");
+        Matcher matcher = pattern.matcher(blockFilePath[blockFilePath.length - 1]);
+
+        if (matcher.matches()) {
+            return Optional.of(matcher);
+        } else {
+            return Optional.empty();
+        }
     }
 }

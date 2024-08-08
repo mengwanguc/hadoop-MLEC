@@ -26,14 +26,10 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -42,10 +38,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import jni.DnodeAttributes;
 import jni.Tools;
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.ha.HAServiceProtocol.HAServiceState;
 import org.apache.hadoop.hdfs.client.BlockReportOptions;
 import org.apache.hadoop.hdfs.protocol.*;
@@ -116,6 +114,8 @@ class BPServiceActor implements Runnable {
       = new LinkedList<BPServiceActorAction>();
   private final CommandProcessingThread commandProcessingThread;
 
+  private MlecDatanodeManagement mlecDnMgmt;
+
   BPServiceActor(String serviceId, String nnId, InetSocketAddress nnAddr,
       InetSocketAddress lifelineNnAddr, BPOfferService bpos) {
     this.bpos = bpos;
@@ -142,6 +142,7 @@ class BPServiceActor implements Runnable {
     if (nnId != null) {
       this.nnId = nnId;
     }
+    this.mlecDnMgmt = new MlecDatanodeManagement();
     commandProcessingThread = new CommandProcessingThread(this);
     commandProcessingThread.start();
   }
@@ -560,23 +561,44 @@ class BPServiceActor implements Runnable {
 //        continue;
 //      }
 
-      // 1. We get the failed block from the file name
-      String[] blockFilePath = dnode.path.split("/");
-      String regex = "^blk_-(\\d+)$";
-      Pattern pattern = Pattern.compile(regex);
-      Matcher matcher = pattern.matcher(blockFilePath[blockFilePath.length - 1]);
+      // Check whether this dnode is actually on this datanode instance
+      DatanodeVolumeInfo volumeInfo = this.dn.getVolumeReport().stream()
+              .filter(vi -> vi.getStorageType() == StorageType.ZFS)
+              .collect(Collectors.toList())
+              .get(0);
 
-      if (matcher.matches()) {
-        // This means that this is a block file, not directory, not anything else
-        // Get the block from the file name
-        long hdfsBlockId = Long.parseLong(matcher.group(1));
-        Block block = new Block(hdfsBlockId);
-
-        LOG.info("Failed hdfs block {} corresponding to zfs dn {}", hdfsBlockId, dnode.toString());
-
-        ZfsFailureTuple failureTuple = new ZfsFailureTuple(hdfsBlockId, dnode.childStatus);
-        zfsReport.getFailedHdfsBlocks().add(failureTuple);
+      // 1. Check whether the dnode actually belongs to this datanode volume (for local testing env)
+      Path path = Paths.get(volumeInfo.getPath(), dnode.path);
+      if (!Files.exists(path)) {
+        continue;
       }
+
+      // 1. We get the failed block from the file name
+      String[] volumePath = volumeInfo.getPath().split("/");
+      String[] blockFilePath = dnode.path.split("/");
+
+      // 2. Check whether this dnode is a hdfs block (rather than directory, metadata, etc)
+      Optional<Matcher> matcher = ZfsFailureTuple.isHdfsBlock(dnode);
+      if (!matcher.isPresent()) {
+        continue;
+      }
+
+      // This means that this is a block file, not directory, not anything else
+      // Get the block from the file name
+      // TODO: figure out why we need to -1 here
+      long hdfsBlockId = Long.parseLong(matcher.get().group(1)) - 1;
+
+      // If this is already a known issue, we ignore
+      if (this.mlecDnMgmt.knownFailures.containsKey(hdfsBlockId)) {
+        continue;
+      }
+
+      LOG.info("Failed hdfs block {} corresponding to zfs dn {}", hdfsBlockId, dnode);
+
+      ZfsFailureTuple failureTuple = new ZfsFailureTuple(hdfsBlockId, dnode.childStatus);
+      zfsReport.getFailedHdfsBlocks().add(failureTuple);
+
+      this.mlecDnMgmt.knownFailures.put(hdfsBlockId, failureTuple);
     }
 
     HeartbeatResponse response = bpNamenode.sendHeartbeat(bpRegistration,
@@ -589,7 +611,8 @@ class BPServiceActor implements Runnable {
         volumeFailureSummary,
         requestBlockReportLease,
         slowPeers,
-        slowDisks);
+        slowDisks,
+        zfsReport);
 
     scheduler.updateLastHeartbeatResponseTime(monotonicNow());
 

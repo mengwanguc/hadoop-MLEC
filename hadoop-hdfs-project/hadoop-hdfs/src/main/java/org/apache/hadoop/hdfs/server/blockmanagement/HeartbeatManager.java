@@ -517,7 +517,6 @@ class HeartbeatManager implements DatanodeStatistics {
       for (DatanodeDescriptor dead : deadDatanodes) {
         LOG.warn("Data node {} is dead", dead.getName());
 
-
         if (dead.getStorageTypes().size() == 1 && dead.getStorageTypes().contains(StorageType.ZFS)) {
           LOG.warn("Failed data node is type ZFS");
         }
