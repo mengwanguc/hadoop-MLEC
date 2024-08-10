@@ -2185,7 +2185,7 @@ public class BlockManager implements BlockStatsMXBean {
 
       LOG.info("Work {} is reading from data nodes {}",
               rw.getBlock().getBlockId(),
-              Arrays.stream(rw.getSrcNodes()).map(des -> des.getHostName()).collect(Collectors.toList()));
+              Arrays.stream(rw.getSrcNodes()).map(des -> des.getHostName() + ":" + des.getInfoPort()).collect(Collectors.toList()));
 
       // Check whether rw is ZFS
       Set<StorageType> blockStorageTypes = new HashSet<>();
@@ -2734,6 +2734,13 @@ public class BlockManager implements BlockStatsMXBean {
       }
 
       if(isStriped || srcNodes.isEmpty()) {
+        // MLEC this node also cannot be the failure cause
+        LOG.info("Zfs failure source {} {} {}", this.zfsBlockMgr.getFailureTuple(block), block, this.zfsBlockMgr.blockFailureSources.keySet());
+        if (this.zfsBlockMgr.getFailureTuple(block).get(0).getDatanodeStorageInfo().equals(storage)) {
+          LOG.info("Not selecting node {} because its the failure cause",
+                  storage.getDatanodeDescriptor().getHostName() + ":" + storage.getDatanodeDescriptor().getInfoPort());
+          continue;
+        }
         srcNodes.add(node);
         if (isStriped) {
           liveBlockIndices.add(blockIndex);
