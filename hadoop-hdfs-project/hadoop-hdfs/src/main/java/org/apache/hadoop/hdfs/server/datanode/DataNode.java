@@ -2738,7 +2738,7 @@ public class DataNode extends ReconfigurableBase
 
     //inform NameNodes
     for(BPOfferService bpos: blockPoolManager.getAllNamenodeThreads()) {
-      LOG.info("Try sending error report");
+      LOG.info("Try sending disk error report");
       bpos.trySendErrorReport(dpError, failedVolumes);
     }
     

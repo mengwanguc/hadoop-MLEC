@@ -72,6 +72,7 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Manage datanodes, include decommission and other activities.
@@ -1837,23 +1838,44 @@ public class DatanodeManager {
     // 1. We get the BlockCollection from the ZFS failure report first
     if (!zfsFailureReport.getFailedHdfsBlocks().isEmpty()) {
       LOG.info("heartbeat contains {} zfs failed hdfs blocks", zfsFailureReport.getFailedHdfsBlocks().size());
+      LOG.info("heartbeat contains the storage report for {}", Arrays.stream(reports).map(r -> r.getStorage()).collect(Collectors.toList()));
       LOG.info("=======");
     }
 
     zfsFailureReport.getFailedHdfsBlocks().forEach(zfsFailTuple -> {
+      LOG.info("Zfs node {} reported block {} failed", nodeinfo.getName(), zfsFailTuple.getFailedBlock());
+
+      nodeinfo.getBlockIterator().forEachRemaining(blockInfo -> {
+        LOG.info("Dn {} has block {}", nodeinfo.getName(), blockInfo.getBlockId());
+      });
+
       final BlockInfo block = blockManager.getStoredBlock(new Block(zfsFailTuple.getFailedBlock()));
+
+      // Get the block peers of the failed block
+      List<Block> blockEcPeers = this.blockManager.getBlocksPeerOf(zfsFailTuple.getFailedBlock());
+
+      // Keep track of the failure cause
+      List<ZfsFailureTuple> alreadyFailed =
+              this.blockManager.zfsBlockMgr.blockFailureSources.getOrDefault(zfsFailTuple.getFailedBlock(), new ArrayList<>());
+      zfsFailTuple.setDatanodeStorageInfo(new DatanodeStorageInfo(nodeinfo, reports[0].getStorage()));
+      alreadyFailed.add(zfsFailTuple);
+      this.blockManager.zfsBlockMgr.blockFailureSources.put(zfsFailTuple.getFailedBlock(), alreadyFailed);
 
       // 2. Check for the block redundancy
       short expected = blockManager.getExpectedRedundancyNum(block);
-
       final NumberReplicas n = blockManager.countNodes(block);
       final int pending = blockManager.pendingReconstruction.getNumReplicas(block);
+
+      // This means that there is failure, we need to remove from the live map
       final boolean hasEnoughReplica = blockManager.hasEnoughEffectiveReplicas(block, n, pending);
       LOG.info("Expected {}, num replica {}, pending {}, enough replica {}",
               expected, n, pending, hasEnoughReplica);
-      if (!hasEnoughReplica) {
-        blockManager.scheduleReconstruction(block, 0);
-      }
+//      if (!hasEnoughReplica) {
+
+      // We schedule the reconstruction no matter what at the moment, currently we always just assume that more than m columns failed in zfs
+//      blockManager.scheduleReconstruction(block, 0);
+      blockManager.neededReconstruction.add(block, expected - 1, 0, 1, expected);
+//      }
     });
 
     heartbeatManager.updateHeartbeat(nodeinfo, reports, cacheCapacity,

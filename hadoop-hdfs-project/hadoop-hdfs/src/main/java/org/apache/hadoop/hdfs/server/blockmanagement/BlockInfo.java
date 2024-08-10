@@ -403,7 +403,7 @@ public abstract class BlockInfo extends Block
   public void convertToBlockUnderConstruction(BlockUCState s,
       DatanodeStorageInfo[] targets) {
     LOG.info("convertToBlockUnderConstruction to state {} for block {}", s, this.getBlockId());
-    Thread.dumpStack();
+//    Thread.dumpStack();
     if (isComplete()) {
       uc = new BlockUnderConstructionFeature(this, s, targets,
           this.getBlockType());

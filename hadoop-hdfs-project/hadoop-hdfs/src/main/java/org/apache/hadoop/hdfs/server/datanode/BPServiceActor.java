@@ -573,10 +573,6 @@ class BPServiceActor implements Runnable {
         continue;
       }
 
-      // 1. We get the failed block from the file name
-      String[] volumePath = volumeInfo.getPath().split("/");
-      String[] blockFilePath = dnode.path.split("/");
-
       // 2. Check whether this dnode is a hdfs block (rather than directory, metadata, etc)
       Optional<Matcher> matcher = ZfsFailureTuple.isHdfsBlock(dnode);
       if (!matcher.isPresent()) {
@@ -585,15 +581,18 @@ class BPServiceActor implements Runnable {
 
       // This means that this is a block file, not directory, not anything else
       // Get the block from the file name
-      // TODO: figure out why we need to -1 here
-      long hdfsBlockId = Long.parseLong(matcher.get().group(1)) - 1;
+      long hdfsBlockId = Long.parseLong(matcher.get().group(1));
 
       // If this is already a known issue, we ignore
       if (this.mlecDnMgmt.knownFailures.containsKey(hdfsBlockId)) {
         continue;
       }
 
-      LOG.info("Failed hdfs block {} corresponding to zfs dn {}", hdfsBlockId, dnode);
+      LOG.info("Failed hdfs block on {}:{} {} corresponding to zfs dn {}", dn.getDatanodeHostname(), dn.getHttpPort(),
+              hdfsBlockId, dnode);
+
+      // MLEC: testing purpose
+      dnode.childStatus.set(0, 1);
 
       ZfsFailureTuple failureTuple = new ZfsFailureTuple(hdfsBlockId, dnode.childStatus);
       zfsReport.getFailedHdfsBlocks().add(failureTuple);
@@ -601,18 +600,19 @@ class BPServiceActor implements Runnable {
       this.mlecDnMgmt.knownFailures.put(hdfsBlockId, failureTuple);
     }
 
+
     HeartbeatResponse response = bpNamenode.sendHeartbeat(bpRegistration,
-        reports,
-        dn.getFSDataset().getCacheCapacity(),
-        dn.getFSDataset().getCacheUsed(),
-        dn.getXmitsInProgress(),
-        dn.getActiveTransferThreadCount(),
-        numFailedVolumes,
-        volumeFailureSummary,
-        requestBlockReportLease,
-        slowPeers,
-        slowDisks,
-        zfsReport);
+            reports,
+            dn.getFSDataset().getCacheCapacity(),
+            dn.getFSDataset().getCacheUsed(),
+            dn.getXmitsInProgress(),
+            dn.getActiveTransferThreadCount(),
+            numFailedVolumes,
+            volumeFailureSummary,
+            requestBlockReportLease,
+            slowPeers,
+            slowDisks,
+            zfsReport);
 
     scheduler.updateLastHeartbeatResponseTime(monotonicNow());
 

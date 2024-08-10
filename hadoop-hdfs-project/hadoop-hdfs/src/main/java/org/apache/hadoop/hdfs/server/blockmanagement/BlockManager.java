@@ -498,7 +498,7 @@ public class BlockManager implements BlockStatsMXBean {
   private long excessRedundancyTimeoutCheckLimit;
 
   // MLEC Stuff
-  private ZfsBlockManagement zfsBlockMgr;
+  public ZfsBlockManagement zfsBlockMgr;
 
   public BlockManager(final Namesystem namesystem, boolean haEnabled,
       final Configuration conf) throws IOException {
@@ -2173,10 +2173,12 @@ public class BlockManager implements BlockStatsMXBean {
       LOG.info("Zfs failure causes {}",failCause);
 
       try {
-        LOG.info("Block {} failed because of {} on hosts {}",
-                rw.getBlock().getBlockId(),
-                failCause.stream().map(tuple -> tuple.getDatanodeStorageInfo().getStorageID()).collect(Collectors.toList()),
-                failCause.stream().map(tuple -> tuple.getDatanodeStorageInfo().getDatanodeDescriptor().getHostName()).collect(Collectors.toList()));
+        LOG.info("Block {} failed because of {} on hosts {}:{}",
+            rw.getBlock().getBlockId(),
+            failCause.stream().map(tuple -> tuple.getDatanodeStorageInfo().getStorageID()).collect(Collectors.toList()),
+            failCause.stream().map(tuple -> tuple.getDatanodeStorageInfo().getDatanodeDescriptor().getHostName()).collect(Collectors.toList()),
+            failCause.stream().map(tuple -> tuple.getDatanodeStorageInfo().getDatanodeDescriptor().getInfoPort()).collect(Collectors.toList()));
+
       } catch (RuntimeException e) {
         // Silence it
       }
@@ -2192,9 +2194,12 @@ public class BlockManager implements BlockStatsMXBean {
         // The block is ZFS, we would need to restore it back to the same datanode that it is coming from
         // However, we cannot directly write, because that IO pool would be suspended, the write will fail
         // We need to instruct the writer to call a different API
-        LOG.info("The reconstruction block is ZFS, writing back to origin datanode {}",
+        LOG.info("The reconstruction block is ZFS, writing back to origin datanode {}:{}",
                 failCause.stream()
                         .map(failTuple -> failTuple.getDatanodeStorageInfo().getDatanodeDescriptor().getHostName())
+                        .collect(Collectors.toList()),
+                failCause.stream()
+                        .map(failTuple -> failTuple.getDatanodeStorageInfo().getDatanodeDescriptor().getInfoPort())
                         .collect(Collectors.toList()));
         DatanodeStorageInfo[] failCauseArr =
                 new DatanodeStorageInfo[failCause.size()];
@@ -2236,7 +2241,8 @@ public class BlockManager implements BlockStatsMXBean {
         }
 
         LOG.info("Adding reconstruction task to DN {}", Arrays.stream(rw.getTargets())
-                .map(i -> i.getDatanodeDescriptor().getHostName()).collect(Collectors.toList()));
+                .map(i -> i.getDatanodeDescriptor().getHostName() + ":" + i.getDatanodeDescriptor().getInfoPort())
+                .collect(Collectors.toList()));
         synchronized (neededReconstruction) {
           if (validateReconstructionWork(rw)) {
             scheduledWork++;
@@ -2280,10 +2286,12 @@ public class BlockManager implements BlockStatsMXBean {
   @VisibleForTesting
   BlockReconstructionWork scheduleReconstruction(BlockInfo block,
       int priority) {
+    LOG.info("ScheduleReconstruction called on block {}", block);
     // skip abandoned block or block reopened for append
     if (block.isDeleted() || !block.isCompleteOrCommitted()) {
       // remove from neededReconstruction
       neededReconstruction.remove(block, priority);
+      LOG.info("Block is already deleted or not completed");
       return null;
     }
 
@@ -2301,7 +2309,7 @@ public class BlockManager implements BlockStatsMXBean {
         numReplicas);
     if (srcNodes == null || srcNodes.length == 0) {
       // block can not be reconstructed from any node
-      LOG.debug("Block {} cannot be reconstructed from any node", block);
+      LOG.info("Block {} cannot be reconstructed from any node", block);
       NameNode.getNameNodeMetrics().incNumTimesReReplicationNotScheduled();
       return null;
     }
@@ -2310,7 +2318,7 @@ public class BlockManager implements BlockStatsMXBean {
     if (block.isStriped()) {
       BlockInfoStriped stripedBlock = (BlockInfoStriped) block;
       if (stripedBlock.getRealDataBlockNum() > srcNodes.length) {
-        LOG.debug("Block {} cannot be reconstructed due to shortage of source datanodes ", block);
+        LOG.info("Block {} cannot be reconstructed due to shortage of source datanodes ", block);
         NameNode.getNameNodeMetrics().incNumTimesReReplicationNotScheduled();
         return null;
       }
@@ -2321,9 +2329,13 @@ public class BlockManager implements BlockStatsMXBean {
     assert liveReplicaNodes.size() >= numReplicas.liveReplicas();
 
     int pendingNum = pendingReconstruction.getNumReplicas(block);
-    if (hasEnoughEffectiveReplicas(block, numReplicas, pendingNum)) {
+
+    // MLEC check: in place update
+    if (hasEnoughEffectiveReplicas(block, numReplicas, pendingNum)
+            && !this.zfsBlockMgr.isZfsFailure(block)) {
       neededReconstruction.remove(block, priority);
-      blockLog.debug("BLOCK* Removing {} from neededReconstruction as it has enough replicas",
+      blockLog.info("zfs failure {} {}", this.zfsBlockMgr.blockFailureSources, this.zfsBlockMgr.isZfsFailure(block));
+      blockLog.info("BLOCK* Removing {} from neededReconstruction as it has enough replicas",
           block);
       NameNode.getNameNodeMetrics().incNumTimesReReplicationNotScheduled();
       return null;
@@ -2343,6 +2355,7 @@ public class BlockManager implements BlockStatsMXBean {
     if (block.isStriped()) {
       if (pendingNum > 0) {
         // Wait the previous reconstruction to finish.
+        LOG.info("Block has more than 0 pending reconstruction, waiting on them to finish first");
         NameNode.getNameNodeMetrics().incNumTimesReReplicationNotScheduled();
         return null;
       }
@@ -2435,7 +2448,11 @@ public class BlockManager implements BlockStatsMXBean {
     final short requiredRedundancy =
         getExpectedLiveRedundancyNum(block, numReplicas);
     final int pendingNum = pendingReconstruction.getNumReplicas(block);
-    if (hasEnoughEffectiveReplicas(block, numReplicas, pendingNum)) {
+
+    // MLEC check, if its ZFS failure, we skip replica check, because we do not remove the block in the first place
+    LOG.info("Zfs failure {}", this.zfsBlockMgr.blockFailureSources);
+    if (hasEnoughEffectiveReplicas(block, numReplicas, pendingNum)
+      && !this.zfsBlockMgr.isZfsFailure(block)) {
       neededReconstruction.remove(block, priority);
       rw.resetTargets();
       blockLog.debug("BLOCK* Removing {} from neededReconstruction as it has enough replicas",
@@ -4778,7 +4795,7 @@ public class BlockManager implements BlockStatsMXBean {
     }
   }
 
-  private List<Block> getBlocksPeerOf(long blockId) {
+  public List<Block> getBlocksPeerOf(long blockId) {
     Block block = new Block(blockId);
 
     // Get the file path
@@ -4797,7 +4814,7 @@ public class BlockManager implements BlockStatsMXBean {
       LOG.info("Block peer {}-{} on datanode {}, status {}, type {}",
               replicaStorage.getStorageType(),
               replicaBlock.getBlockId(),
-              replicaStorage.getDatanodeDescriptor().getHostName(),
+              replicaStorage.getDatanodeDescriptor().getName(),
               replicaStorage.getState(),
               replicaStorage.getStorageType());
 
