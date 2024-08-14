@@ -2736,7 +2736,8 @@ public class BlockManager implements BlockStatsMXBean {
       if(isStriped || srcNodes.isEmpty()) {
         // MLEC this node also cannot be the failure cause
         LOG.info("Zfs failure source {} {} {}", this.zfsBlockMgr.getFailureTuple(block), block, this.zfsBlockMgr.blockFailureSources.keySet());
-        if (this.zfsBlockMgr.getFailureTuple(block).get(0).getDatanodeStorageInfo().equals(storage)) {
+        if (this.zfsBlockMgr.getFailureTuple(block) != null
+            && this.zfsBlockMgr.getFailureTuple(block).get(0).getDatanodeStorageInfo().equals(storage)) {
           LOG.info("Not selecting node {} because its the failure cause",
                   storage.getDatanodeDescriptor().getHostName() + ":" + storage.getDatanodeDescriptor().getInfoPort());
           continue;

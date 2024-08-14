@@ -109,7 +109,6 @@ public class StripedZfsBlockReconstructor extends StripedBlockReconstructor
     long bytesTransferred = 0;
 
     while (getPositionInBlock() < getMaxTargetLength()) {
-      DataNodeFaultInjector.get().stripedBlockReconstruction();
       long remaining = getMaxTargetLength() - getPositionInBlock();
       final int toReconstructLen =
           (int) Math.min(getStripedReader().getBufferSize(), remaining);
@@ -121,7 +120,6 @@ public class StripedZfsBlockReconstructor extends StripedBlockReconstructor
         getDatanode().getEcReconstuctReadThrottler().throttle(bytesToRead);
       }
 
-
       // step1: read from minimum source DNs required for reconstruction.
       // The returned success list is the source DNs we do real read from
       LOG.info("Read total of {} bytes as sources", toReconstructLen);
@@ -130,6 +128,7 @@ public class StripedZfsBlockReconstructor extends StripedBlockReconstructor
       long readEnd = Time.monotonicNow();
 
       // step2: decode to reconstruct targets
+      LOG.info("Reconstructing {} targets", toReconstructLen);
       reconstructTargets(toReconstructLen);
       long decodeEnd = Time.monotonicNow();
 

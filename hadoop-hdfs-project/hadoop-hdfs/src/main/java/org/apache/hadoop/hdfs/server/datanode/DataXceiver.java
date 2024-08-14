@@ -586,7 +586,7 @@ class DataXceiver extends Receiver implements Runnable {
       final CachingStrategy cachingStrategy) throws IOException {
     previousOpClientName = clientName;
     long read = 0;
-    updateCurrentThreadName("Sending block " + block);
+    updateCurrentThreadName("Receiving block " + block);
     OutputStream baseStream = getOutputStream();
     DataOutputStream out = getBufferedOutputStream();
     checkAccess(out, true, block, blockToken, Op.READ_BLOCK,

@@ -85,7 +85,7 @@ class StripedBlockReconstructor extends StripedReconstructor
       // Note, this step will try to create the block on the target datanode first for later data append
       // This is what is throwing the DiskOutOfSpaceException. For ZFS, we need to tell HDFS to hold the block in memory?
       stripedWriter.init();
-      LOG.info("Initialized stripe writer");
+      LOG.info("Initialized stripe writer with target status {}", stripedWriter.targetsStatus);
       Thread.sleep(15000);
 
       reconstruct();

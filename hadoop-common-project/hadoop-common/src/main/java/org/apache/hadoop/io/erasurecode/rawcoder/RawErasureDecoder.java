@@ -20,6 +20,8 @@ package org.apache.hadoop.io.erasurecode.rawcoder;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.io.erasurecode.ECChunk;
 import org.apache.hadoop.io.erasurecode.ErasureCoderOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -43,6 +45,8 @@ import java.nio.ByteBuffer;
 @InterfaceAudience.Private
 public abstract class RawErasureDecoder {
 
+  protected static final Logger LOG = LoggerFactory.getLogger(RawErasureDecoder.class);
+  
   private final ErasureCoderOptions coderOptions;
 
   public RawErasureDecoder(ErasureCoderOptions coderOptions) {
@@ -82,8 +86,9 @@ public abstract class RawErasureDecoder {
    *                erasedIndexes, ready for read after the call
    * @throws IOException raised on errors performing I/O.
    */
-  public synchronized void decode(ByteBuffer[] inputs, int[] erasedIndexes,
+  public synchronized void  decode(ByteBuffer[] inputs, int[] erasedIndexes,
                      ByteBuffer[] outputs) throws IOException {
+    LOG.info("inputs array length {}, erased indexes {}, outputs length {}", inputs.length, erasedIndexes, outputs.length);
     ByteBufferDecodingState decodingState = new ByteBufferDecodingState(this,
         inputs, erasedIndexes, outputs);
 

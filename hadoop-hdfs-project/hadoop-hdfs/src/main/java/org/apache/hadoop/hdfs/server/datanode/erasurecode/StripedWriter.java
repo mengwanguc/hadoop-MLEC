@@ -48,7 +48,7 @@ class StripedWriter {
   private final int dataBlkNum;
   private final int parityBlkNum;
 
-  private boolean[] targetsStatus;
+  public boolean[] targetsStatus;
 
   // targets
   private final DatanodeInfo[] targets;
@@ -192,6 +192,7 @@ class StripedWriter {
         writers[i] = createWriter(i);
         nSuccess++;
         targetsStatus[i] = true;
+        LOG.info("Target status {}", targetsStatus);
       } catch (Throwable e) {
         LOG.warn("Something went wrong during createWriter()");
         LOG.warn(e.getMessage());
@@ -218,6 +219,7 @@ class StripedWriter {
 
   private int getRealTargets() {
     int m = 0;
+    LOG.info("Getting realTargets, number of targets {}, target status {}", targets.length, targetsStatus);
     for (int i = 0; i < targets.length; i++) {
       if (targetsStatus[i]) {
         m++;
@@ -240,6 +242,7 @@ class StripedWriter {
 
   ByteBuffer[] getRealTargetBuffers(int toReconstructLen) {
     int numGood = getRealTargets();
+    LOG.info("Number of good target {}", numGood);
     ByteBuffer[] outputs = new ByteBuffer[numGood];
     int m = 0;
     for (int i = 0; i < targets.length; i++) {
