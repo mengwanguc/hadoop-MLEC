@@ -2151,12 +2151,10 @@ public class BlockManager implements BlockStatsMXBean {
     namesystem.writeLock();
     try {
       synchronized (neededReconstruction) {
-        for (int priority = 0; priority < blocksToReconstruct
-            .size(); priority++) {
+        for (int priority = 0; priority < blocksToReconstruct.size(); priority++) {
           for (BlockInfo block : blocksToReconstruct.get(priority)) {
             LOG.info("Calling scheduleReconstruction on block {}", block.getBlockId());
-            BlockReconstructionWork rw = scheduleReconstruction(block,
-                priority);
+            BlockReconstructionWork rw = scheduleReconstruction(block, priority);
             if (rw != null) {
               reconWork.add(rw);
             }

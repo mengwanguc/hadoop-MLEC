@@ -53,7 +53,7 @@ public class StripedZfsBlockReconstructor extends StripedBlockReconstructor
       // Note, this step will try to create the block on the target datanode first for later data append
       // This is what is throwing the DiskOutOfSpaceException. For ZFS, we need to tell HDFS to hold the block in memory?
       stripedWriter.init();
-      LOG.info("Initialized stripe writer");
+      LOG.info("Initialized stripe writer with target status {}", stripedWriter.targetsStatus);
       Thread.sleep(5000);
 
       // For each of the zfs repair indices, we should do a reconstruction
@@ -129,7 +129,7 @@ public class StripedZfsBlockReconstructor extends StripedBlockReconstructor
 
       // step2: decode to reconstruct targets
       LOG.info("Reconstructing {} targets", toReconstructLen);
-      reconstructTargets(toReconstructLen);
+      this.reconstructTargets(toReconstructLen);
       long decodeEnd = Time.monotonicNow();
 
       // step3: transfer data
@@ -161,6 +161,38 @@ public class StripedZfsBlockReconstructor extends StripedBlockReconstructor
     LOG.warn("Reconstruction ended at {}, total {} seconds", Instant.ofEpochMilli(Time.now()).toString(),
             (Time.monotonicNow() - loopStart));
     LOG.warn("Total read {} bytes, wrote {} bytes", bytesRead, bytesTransferred);
+  }
+
+  protected void reconstructTargets(int toReconstructLen) throws IOException {
+    ByteBuffer[] inputs = getStripedReader().getInputBuffers(toReconstructLen);
+
+    int[] erasedIndices = stripedWriter.getRealTargetIndices();
+    ByteBuffer[] outputs = stripedWriter.getRealTargetBuffers(toReconstructLen);
+
+    if (isValidationEnabled()) {
+      markBuffers(inputs);
+      decode(inputs, erasedIndices, outputs);
+      resetBuffers(inputs);
+
+      DataNodeFaultInjector.get().badDecoding(outputs);
+      long start = Time.monotonicNow();
+      try {
+        getValidator().validate(inputs, erasedIndices, outputs);
+        long validateEnd = Time.monotonicNow();
+        getDatanode().getMetrics().incrECReconstructionValidateTime(
+                validateEnd - start);
+      } catch (InvalidDecodingException e) {
+        long validateFailedEnd = Time.monotonicNow();
+        getDatanode().getMetrics().incrECReconstructionValidateTime(
+                validateFailedEnd - start);
+        getDatanode().getMetrics().incrECInvalidReconstructionTasks();
+        throw e;
+      }
+    } else {
+      decode(inputs, erasedIndices, outputs);
+    }
+
+    stripedWriter.updateRealTargetBuffers(toReconstructLen);
   }
 
   private void allocateBuffer() {

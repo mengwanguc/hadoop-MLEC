@@ -1849,7 +1849,9 @@ public class DatanodeManager {
         LOG.info("Dn {} has block {}", nodeinfo.getName(), blockInfo.getBlockId());
       });
 
+      LOG.info("Blocks map {}", blockManager.blocksMap.getBlocks());
       final BlockInfo block = blockManager.getStoredBlock(new Block(zfsFailTuple.getFailedBlock()));
+      LOG.info("Stored block return {}", block);
 
       // Get the block peers of the failed block
       List<Block> blockEcPeers = this.blockManager.getBlocksPeerOf(zfsFailTuple.getFailedBlock());
@@ -1874,6 +1876,7 @@ public class DatanodeManager {
 
       // We schedule the reconstruction no matter what at the moment, currently we always just assume that more than m columns failed in zfs
 //      blockManager.scheduleReconstruction(block, 0);
+      LOG.info("Adding block {} to needed reconstruction queue", block);
       blockManager.neededReconstruction.add(block, expected - 1, 0, 1, expected);
 //      }
     });
