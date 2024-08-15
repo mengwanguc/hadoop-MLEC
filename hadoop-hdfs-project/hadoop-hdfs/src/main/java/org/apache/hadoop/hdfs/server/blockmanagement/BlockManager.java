@@ -2203,7 +2203,8 @@ public class BlockManager implements BlockStatsMXBean {
                 new DatanodeStorageInfo[failCause.size()];
         failCause.stream()
                 .map(ZfsFailureTuple::getDatanodeStorageInfo)
-                .peek(info -> info.setStorageType(StorageType.ZFS_RECON_BUFFER))
+                // Do not set the target to ZFS_RECON_BUFFER, we want in replace rewrite
+//                .peek(info -> info.setStorageType(StorageType.ZFS_RECON_BUFFER))
                 .collect(Collectors.toList())
                 .toArray(failCauseArr);
         rw.setTargets(failCauseArr);
@@ -4754,20 +4755,20 @@ public class BlockManager implements BlockStatsMXBean {
       case DELETED_BLOCK:
         // Get the datanode that we are deleting the block from
         LOG.info("Deleting block from data node {}", node.getHostName());
-        List<ZfsFailureTuple> failedBlocksIds = ZfsBlockManagement
-          .getDataNodeZfsFailedStripes(node);
-
-        // Get the file that we are deleting the block from
-        List<Block> blockPeers = getBlocksPeerOf(failedBlocksIds.get(0).getFailedBlock());
-
-        // Keep track of failure cause
-        List<ZfsFailureTuple> failureCause =
-                this.zfsBlockMgr.blockFailureSources.getOrDefault(rdbi.getBlock().getBlockId(), new ArrayList<>());
-        failedBlocksIds.get(0).setDatanodeStorageInfo(new DatanodeStorageInfo(node, srdb.getStorage()));
-        failureCause.add(failedBlocksIds.get(0));
-        this.zfsBlockMgr.blockFailureSources.put(rdbi.getBlock().getBlockId(), failureCause);
-        LOG.info("ZFS failure map {}", this.zfsBlockMgr.blockFailureSources);
-        LOG.info("ZFS failure tuples {}", failureCause);
+//        List<ZfsFailureTuple> failedBlocksIds = ZfsBlockManagement
+//          .getDataNodeZfsFailedStripes(node);
+//
+//        // Get the file that we are deleting the block from
+//        List<Block> blockPeers = getBlocksPeerOf(failedBlocksIds.get(0).getFailedBlock());
+//
+//        // Keep track of failure cause
+//        List<ZfsFailureTuple> failureCause =
+//                this.zfsBlockMgr.blockFailureSources.getOrDefault(rdbi.getBlock().getBlockId(), new ArrayList<>());
+//        failedBlocksIds.get(0).setDatanodeStorageInfo(new DatanodeStorageInfo(node, srdb.getStorage()));
+//        failureCause.add(failedBlocksIds.get(0));
+//        this.zfsBlockMgr.blockFailureSources.put(rdbi.getBlock().getBlockId(), failureCause);
+//        LOG.info("ZFS failure map {}", this.zfsBlockMgr.blockFailureSources);
+//        LOG.info("ZFS failure tuples {}", failureCause);
 
         removeStoredBlock(storageInfo, rdbi.getBlock(), node);
         deleted++;
@@ -4812,6 +4813,7 @@ public class BlockManager implements BlockStatsMXBean {
 
     // Get the peer blocks of this failing block
     LOG.info("==Block peers==");
+    LOG.info("Original block {}", block);
     BlockInfo storedBlockInfo = this.getStoredBlock(block);
 
     List<Block> blockPeers = new ArrayList<>();

@@ -1872,13 +1872,12 @@ public class DatanodeManager {
       final boolean hasEnoughReplica = blockManager.hasEnoughEffectiveReplicas(block, n, pending);
       LOG.info("Expected {}, num replica {}, pending {}, enough replica {}",
               expected, n, pending, hasEnoughReplica);
-//      if (!hasEnoughReplica) {
+      //      if (!hasEnoughReplica) {
 
       // We schedule the reconstruction no matter what at the moment, currently we always just assume that more than m columns failed in zfs
-//      blockManager.scheduleReconstruction(block, 0);
       LOG.info("Adding block {} to needed reconstruction queue", block);
       blockManager.neededReconstruction.add(block, expected - 1, 0, 1, expected);
-//      }
+      //      }
     });
 
     heartbeatManager.updateHeartbeat(nodeinfo, reports, cacheCapacity,

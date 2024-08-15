@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ZfsBlockManagement {
 
@@ -18,10 +19,10 @@ public class ZfsBlockManagement {
 
     // What datanode storage "failure" contributed to the block failure
     // "failure" does not mean data storage failure, it just mean that block cannot be r/w/found for some reason
-    public Map<Long, List<ZfsFailureTuple>> blockFailureSources;
+    public Map<Long, List<ZfsFailureTuple>> blockFailureSources = new ConcurrentHashMap<>();
 
     public ZfsBlockManagement() {
-        this.blockFailureSources = new HashMap<>();
+        this.blockFailureSources = new ConcurrentHashMap<>();
     }
 
     // We can check whether the map contains blockId
