@@ -1845,23 +1845,28 @@ public class DatanodeManager {
     zfsFailureReport.getFailedHdfsBlocks().forEach(zfsFailTuple -> {
       LOG.info("Zfs node {} reported block {} failed", nodeinfo.getName(), zfsFailTuple.getFailedBlock());
 
-      nodeinfo.getBlockIterator().forEachRemaining(blockInfo -> {
-        LOG.info("Dn {} has block {}", nodeinfo.getName(), blockInfo.getBlockId());
-      });
-
-      LOG.info("Blocks map {}", blockManager.blocksMap.getBlocks());
-      final BlockInfo block = blockManager.getStoredBlock(new Block(zfsFailTuple.getFailedBlock()));
-      LOG.info("Stored block return {}", block);
+//      nodeinfo.getBlockIterator().forEachRemaining(blockInfo -> {
+//        LOG.info("Dn {} has block {}", nodeinfo.getName(), blockInfo.getBlockId());
+//      });
+//
+//      LOG.info("Blocks map {}", blockManager.blocksMap.getBlocks());
+//      final BlockInfo block = blockManager.getStoredBlock(new Block(zfsFailTuple.getFailedBlock()));
+//      LOG.info("Stored block return {}", block);
 
       // Get the block peers of the failed block
       List<Block> blockEcPeers = this.blockManager.getBlocksPeerOf(zfsFailTuple.getFailedBlock());
+      // Find the block that has actually failed
+      Block failedBlock = new Block(zfsFailTuple.getFailedBlock());
+      LOG.info("Failed block filter to be {}", failedBlock);
+      BlockInfo block = blockManager.getStoredBlock(failedBlock);
+      LOG.info("Stored block is {}", block);
 
       // Keep track of the failure cause
       List<ZfsFailureTuple> alreadyFailed =
-              this.blockManager.zfsBlockMgr.blockFailureSources.getOrDefault(zfsFailTuple.getFailedBlock(), new ArrayList<>());
+              this.blockManager.zfsBlockMgr.blockFailureSources.getOrDefault(block.getBlockId(), new ArrayList<>());
       zfsFailTuple.setDatanodeStorageInfo(new DatanodeStorageInfo(nodeinfo, reports[0].getStorage()));
       alreadyFailed.add(zfsFailTuple);
-      this.blockManager.zfsBlockMgr.blockFailureSources.put(zfsFailTuple.getFailedBlock(), alreadyFailed);
+      this.blockManager.zfsBlockMgr.blockFailureSources.put(block.getBlockId(), alreadyFailed);
 
       // 2. Check for the block redundancy
       short expected = blockManager.getExpectedRedundancyNum(block);

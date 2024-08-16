@@ -51,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.management.ObjectName;
 
@@ -511,15 +512,15 @@ public class BlockManager implements BlockStatsMXBean {
     this.rescannedMisreplicatedBlocks =
         new ArrayList<Block>(blocksPerPostpondedRescan);
     this.startupDelayBlockDeletionInMs = conf.getLong(
-        DFSConfigKeys.DFS_NAMENODE_STARTUP_DELAY_BLOCK_DELETION_SEC_KEY,
-        DFSConfigKeys.DFS_NAMENODE_STARTUP_DELAY_BLOCK_DELETION_SEC_DEFAULT)
+        DFS_NAMENODE_STARTUP_DELAY_BLOCK_DELETION_SEC_KEY,
+        DFS_NAMENODE_STARTUP_DELAY_BLOCK_DELETION_SEC_DEFAULT)
         * 1000L;
     this.deleteBlockLockTimeMs = conf.getLong(
-        DFSConfigKeys.DFS_NAMENODE_BLOCK_DELETION_LOCK_THRESHOLD_MS,
-        DFSConfigKeys.DFS_NAMENODE_BLOCK_DELETION_LOCK_THRESHOLD_MS_DEFAULT);
+        DFS_NAMENODE_BLOCK_DELETION_LOCK_THRESHOLD_MS,
+        DFS_NAMENODE_BLOCK_DELETION_LOCK_THRESHOLD_MS_DEFAULT);
     this.deleteBlockUnlockIntervalTimeMs = conf.getLong(
-        DFSConfigKeys.DFS_NAMENODE_BLOCK_DELETION_UNLOCK_INTERVAL_MS,
-        DFSConfigKeys.DFS_NAMENODE_BLOCK_DELETION_UNLOCK_INTERVAL_MS_DEFAULT);
+        DFS_NAMENODE_BLOCK_DELETION_UNLOCK_INTERVAL_MS,
+        DFS_NAMENODE_BLOCK_DELETION_UNLOCK_INTERVAL_MS_DEFAULT);
     this.invalidateBlocks = new InvalidateBlocks(
         datanodeManager.getBlockInvalidateLimit(),
         startupDelayBlockDeletionInMs,
@@ -534,8 +535,8 @@ public class BlockManager implements BlockStatsMXBean {
         datanodeManager.getHost2DatanodeMap());
     this.storagePolicySuite = BlockStoragePolicySuite.createDefaultSuite(conf);
     this.pendingReconstruction = new PendingReconstructionBlocks(conf.getInt(
-        DFSConfigKeys.DFS_NAMENODE_RECONSTRUCTION_PENDING_TIMEOUT_SEC_KEY,
-        DFSConfigKeys.DFS_NAMENODE_RECONSTRUCTION_PENDING_TIMEOUT_SEC_DEFAULT)
+        DFS_NAMENODE_RECONSTRUCTION_PENDING_TIMEOUT_SEC_KEY,
+        DFS_NAMENODE_RECONSTRUCTION_PENDING_TIMEOUT_SEC_DEFAULT)
         * 1000L);
 
     createSPSManager(conf);
@@ -544,43 +545,43 @@ public class BlockManager implements BlockStatsMXBean {
     this.providedStorageMap = new ProvidedStorageMap(namesystem, this, conf);
 
     this.maxCorruptFilesReturned = conf.getInt(
-        DFSConfigKeys.DFS_DEFAULT_MAX_CORRUPT_FILES_RETURNED_KEY,
-        DFSConfigKeys.DFS_DEFAULT_MAX_CORRUPT_FILES_RETURNED);
-    this.defaultReplication = conf.getInt(DFSConfigKeys.DFS_REPLICATION_KEY,
-        DFSConfigKeys.DFS_REPLICATION_DEFAULT);
+        DFS_DEFAULT_MAX_CORRUPT_FILES_RETURNED_KEY,
+        DFS_DEFAULT_MAX_CORRUPT_FILES_RETURNED);
+    this.defaultReplication = conf.getInt(DFS_REPLICATION_KEY,
+        DFS_REPLICATION_DEFAULT);
 
     this.minReplication = (short) initMinReplication(conf);
     this.maxReplication = (short) initMaxReplication(conf);
 
     this.maxReplicationStreams =
-        conf.getInt(DFSConfigKeys.DFS_NAMENODE_REPLICATION_MAX_STREAMS_KEY,
-            DFSConfigKeys.DFS_NAMENODE_REPLICATION_MAX_STREAMS_DEFAULT);
+        conf.getInt(DFS_NAMENODE_REPLICATION_MAX_STREAMS_KEY,
+            DFS_NAMENODE_REPLICATION_MAX_STREAMS_DEFAULT);
     this.replicationStreamsHardLimit =
         conf.getInt(
-            DFSConfigKeys.DFS_NAMENODE_REPLICATION_STREAMS_HARD_LIMIT_KEY,
-            DFSConfigKeys.DFS_NAMENODE_REPLICATION_STREAMS_HARD_LIMIT_DEFAULT);
+            DFS_NAMENODE_REPLICATION_STREAMS_HARD_LIMIT_KEY,
+            DFS_NAMENODE_REPLICATION_STREAMS_HARD_LIMIT_DEFAULT);
     this.blocksInvalidateWorkPct = DFSUtil.getInvalidateWorkPctPerIteration(conf);
     this.blocksReplWorkMultiplier = DFSUtil.getReplWorkMultiplier(conf);
 
     this.redundancyRecheckIntervalMs = conf.getTimeDuration(
-        DFSConfigKeys.DFS_NAMENODE_REDUNDANCY_INTERVAL_SECONDS_KEY,
-        DFSConfigKeys.DFS_NAMENODE_REDUNDANCY_INTERVAL_SECONDS_DEFAULT,
+        DFS_NAMENODE_REDUNDANCY_INTERVAL_SECONDS_KEY,
+        DFS_NAMENODE_REDUNDANCY_INTERVAL_SECONDS_DEFAULT,
         TimeUnit.SECONDS, TimeUnit.MILLISECONDS);
 
     this.encryptDataTransfer =
-        conf.getBoolean(DFSConfigKeys.DFS_ENCRYPT_DATA_TRANSFER_KEY,
-            DFSConfigKeys.DFS_ENCRYPT_DATA_TRANSFER_DEFAULT);
+        conf.getBoolean(DFS_ENCRYPT_DATA_TRANSFER_KEY,
+            DFS_ENCRYPT_DATA_TRANSFER_DEFAULT);
 
     this.maxNumBlocksToLog =
-        conf.getLong(DFSConfigKeys.DFS_MAX_NUM_BLOCKS_TO_LOG_KEY,
-            DFSConfigKeys.DFS_MAX_NUM_BLOCKS_TO_LOG_DEFAULT);
+        conf.getLong(DFS_MAX_NUM_BLOCKS_TO_LOG_KEY,
+            DFS_MAX_NUM_BLOCKS_TO_LOG_DEFAULT);
     this.maxLockHoldTime = conf.getTimeDuration(
-        DFSConfigKeys.DFS_NAMENODE_BLOCKREPORT_MAX_LOCK_HOLD_TIME,
-        DFSConfigKeys.DFS_NAMENODE_BLOCKREPORT_MAX_LOCK_HOLD_TIME_DEFAULT,
+        DFS_NAMENODE_BLOCKREPORT_MAX_LOCK_HOLD_TIME,
+        DFS_NAMENODE_BLOCKREPORT_MAX_LOCK_HOLD_TIME_DEFAULT,
         TimeUnit.MILLISECONDS);
     this.numBlocksPerIteration = conf.getInt(
-        DFSConfigKeys.DFS_BLOCK_MISREPLICATION_PROCESSING_LIMIT,
-        DFSConfigKeys.DFS_BLOCK_MISREPLICATION_PROCESSING_LIMIT_DEFAULT);
+        DFS_BLOCK_MISREPLICATION_PROCESSING_LIMIT,
+        DFS_BLOCK_MISREPLICATION_PROCESSING_LIMIT_DEFAULT);
 
     this.minReplicationToBeInMaintenance =
         (short) initMinReplicationToBeInMaintenance(conf);
@@ -588,8 +589,8 @@ public class BlockManager implements BlockStatsMXBean {
         initReplQueueResetToHeadThreshold(conf);
 
     long heartbeatIntervalSecs = conf.getTimeDuration(
-        DFSConfigKeys.DFS_HEARTBEAT_INTERVAL_KEY,
-        DFSConfigKeys.DFS_HEARTBEAT_INTERVAL_DEFAULT, TimeUnit.SECONDS);
+        DFS_HEARTBEAT_INTERVAL_KEY,
+        DFS_HEARTBEAT_INTERVAL_DEFAULT, TimeUnit.SECONDS);
     long blockRecoveryTimeout = getBlockRecoveryTimeout(heartbeatIntervalSecs);
     this.pendingRecoveryBlocks = new PendingRecoveryBlocks(blockRecoveryTimeout);
 
@@ -599,8 +600,8 @@ public class BlockManager implements BlockStatsMXBean {
         conf);
 
     int queueSize = conf.getInt(
-        DFSConfigKeys.DFS_NAMENODE_BLOCKREPORT_QUEUE_SIZE_KEY,
-        DFSConfigKeys.DFS_NAMENODE_BLOCKREPORT_QUEUE_SIZE_DEFAULT);
+        DFS_NAMENODE_BLOCKREPORT_QUEUE_SIZE_KEY,
+        DFS_NAMENODE_BLOCKREPORT_QUEUE_SIZE_DEFAULT);
     this.blockReportThread = new BlockReportProcessingThread(queueSize);
 
     this.deleteCorruptReplicaImmediately =
@@ -620,29 +621,29 @@ public class BlockManager implements BlockStatsMXBean {
 
   private int initMinReplication(Configuration conf) throws IOException {
     final int minR = conf.getInt(
-        DFSConfigKeys.DFS_NAMENODE_REPLICATION_MIN_KEY,
-        DFSConfigKeys.DFS_NAMENODE_REPLICATION_MIN_DEFAULT);
+        DFS_NAMENODE_REPLICATION_MIN_KEY,
+        DFS_NAMENODE_REPLICATION_MIN_DEFAULT);
     if (minR <= 0) {
       throw new IOException("Unexpected configuration parameters: "
-          + DFSConfigKeys.DFS_NAMENODE_REPLICATION_MIN_KEY
+          + DFS_NAMENODE_REPLICATION_MIN_KEY
           + " = " + minR + " <= 0");
     }
     return minR;
   }
 
   private int initMaxReplication(Configuration conf) throws IOException {
-    final int maxR = conf.getInt(DFSConfigKeys.DFS_REPLICATION_MAX_KEY,
-        DFSConfigKeys.DFS_REPLICATION_MAX_DEFAULT);
+    final int maxR = conf.getInt(DFS_REPLICATION_MAX_KEY,
+        DFS_REPLICATION_MAX_DEFAULT);
     if (maxR > Short.MAX_VALUE) {
       throw new IOException("Unexpected configuration parameters: "
-          + DFSConfigKeys.DFS_REPLICATION_MAX_KEY
+          + DFS_REPLICATION_MAX_KEY
           + " = " + maxR + " > " + Short.MAX_VALUE);
     }
     if (minReplication > maxR) {
       throw new IOException("Unexpected configuration parameters: "
-          + DFSConfigKeys.DFS_NAMENODE_REPLICATION_MIN_KEY
+          + DFS_NAMENODE_REPLICATION_MIN_KEY
           + " = " + minReplication + " > "
-          + DFSConfigKeys.DFS_REPLICATION_MAX_KEY
+          + DFS_REPLICATION_MAX_KEY
           + " = " + maxR);
     }
     return maxR;
@@ -651,19 +652,19 @@ public class BlockManager implements BlockStatsMXBean {
   private int initMinReplicationToBeInMaintenance(Configuration conf)
       throws IOException {
     final int minMaintenanceR = conf.getInt(
-        DFSConfigKeys.DFS_NAMENODE_MAINTENANCE_REPLICATION_MIN_KEY,
-        DFSConfigKeys.DFS_NAMENODE_MAINTENANCE_REPLICATION_MIN_DEFAULT);
+        DFS_NAMENODE_MAINTENANCE_REPLICATION_MIN_KEY,
+        DFS_NAMENODE_MAINTENANCE_REPLICATION_MIN_DEFAULT);
 
     if (minMaintenanceR < 0) {
       throw new IOException("Unexpected configuration parameters: "
-          + DFSConfigKeys.DFS_NAMENODE_MAINTENANCE_REPLICATION_MIN_KEY
+          + DFS_NAMENODE_MAINTENANCE_REPLICATION_MIN_KEY
           + " = " + minMaintenanceR + " < 0");
     }
     if (minMaintenanceR > defaultReplication) {
       throw new IOException("Unexpected configuration parameters: "
-          + DFSConfigKeys.DFS_NAMENODE_MAINTENANCE_REPLICATION_MIN_KEY
+          + DFS_NAMENODE_MAINTENANCE_REPLICATION_MIN_KEY
           + " = " + minMaintenanceR + " > "
-          + DFSConfigKeys.DFS_REPLICATION_KEY
+          + DFS_REPLICATION_KEY
           + " = " + defaultReplication);
     }
     return minMaintenanceR;
@@ -671,15 +672,13 @@ public class BlockManager implements BlockStatsMXBean {
 
   private int initReplQueueResetToHeadThreshold(Configuration conf) {
     int threshold = conf.getInt(
-        DFSConfigKeys.DFS_NAMENODE_REDUNDANCY_QUEUE_RESTART_ITERATIONS,
-        DFSConfigKeys.DFS_NAMENODE_REDUNDANCY_QUEUE_RESTART_ITERATIONS_DEFAULT);
+        DFS_NAMENODE_REDUNDANCY_QUEUE_RESTART_ITERATIONS,
+        DFS_NAMENODE_REDUNDANCY_QUEUE_RESTART_ITERATIONS_DEFAULT);
     if (threshold < 0) {
       LOG.warn("{} is set to {} and it must be >= 0. Resetting to default {}",
-          DFSConfigKeys.DFS_NAMENODE_REDUNDANCY_QUEUE_RESTART_ITERATIONS,
-          threshold, DFSConfigKeys.
-              DFS_NAMENODE_REDUNDANCY_QUEUE_RESTART_ITERATIONS_DEFAULT);
-      threshold = DFSConfigKeys.
-          DFS_NAMENODE_REDUNDANCY_QUEUE_RESTART_ITERATIONS_DEFAULT;
+          DFS_NAMENODE_REDUNDANCY_QUEUE_RESTART_ITERATIONS,
+          threshold, DFS_NAMENODE_REDUNDANCY_QUEUE_RESTART_ITERATIONS_DEFAULT);
+      threshold = DFS_NAMENODE_REDUNDANCY_QUEUE_RESTART_ITERATIONS_DEFAULT;
     }
     return threshold;
   }
@@ -697,15 +696,15 @@ public class BlockManager implements BlockStatsMXBean {
   private static BlockTokenSecretManager createBlockTokenSecretManager(
       final Configuration conf) throws IOException {
     final boolean isEnabled = conf.getBoolean(
-        DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY, 
-        DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_DEFAULT);
-    LOG.info("{} = {}", DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY,
+        DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY,
+        DFS_BLOCK_ACCESS_TOKEN_ENABLE_DEFAULT);
+    LOG.info("{} = {}", DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY,
             isEnabled);
 
     if (!isEnabled) {
       if (UserGroupInformation.isSecurityEnabled()) {
         String errMessage = "Security is enabled but block access tokens " +
-            "(via " + DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY + ") " +
+            "(via " + DFS_BLOCK_ACCESS_TOKEN_ENABLE_KEY + ") " +
             "aren't enabled. This may cause issues " +
             "when clients attempt to connect to a DataNode. Aborting NameNode";
         throw new IOException(errMessage);
@@ -714,23 +713,23 @@ public class BlockManager implements BlockStatsMXBean {
     }
 
     final long updateMin = conf.getLong(
-        DFSConfigKeys.DFS_BLOCK_ACCESS_KEY_UPDATE_INTERVAL_KEY, 
-        DFSConfigKeys.DFS_BLOCK_ACCESS_KEY_UPDATE_INTERVAL_DEFAULT);
+        DFS_BLOCK_ACCESS_KEY_UPDATE_INTERVAL_KEY,
+        DFS_BLOCK_ACCESS_KEY_UPDATE_INTERVAL_DEFAULT);
     final long lifetimeMin = conf.getLong(
-        DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_LIFETIME_KEY, 
-        DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_LIFETIME_DEFAULT);
+        DFS_BLOCK_ACCESS_TOKEN_LIFETIME_KEY,
+        DFS_BLOCK_ACCESS_TOKEN_LIFETIME_DEFAULT);
     final String encryptionAlgorithm = conf.get(
-        DFSConfigKeys.DFS_DATA_ENCRYPTION_ALGORITHM_KEY);
+        DFS_DATA_ENCRYPTION_ALGORITHM_KEY);
     LOG.info("{}={} min(s), {}={} min(s), {}={}",
-        DFSConfigKeys.DFS_BLOCK_ACCESS_KEY_UPDATE_INTERVAL_KEY, updateMin,
-        DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_LIFETIME_KEY, lifetimeMin,
-        DFSConfigKeys.DFS_DATA_ENCRYPTION_ALGORITHM_KEY, encryptionAlgorithm);
+        DFS_BLOCK_ACCESS_KEY_UPDATE_INTERVAL_KEY, updateMin,
+        DFS_BLOCK_ACCESS_TOKEN_LIFETIME_KEY, lifetimeMin,
+        DFS_DATA_ENCRYPTION_ALGORITHM_KEY, encryptionAlgorithm);
     
     String nsId = DFSUtil.getNamenodeNameServiceId(conf);
     boolean isHaEnabled = HAUtil.isHAEnabled(conf, nsId);
     boolean shouldWriteProtobufToken = conf.getBoolean(
-        DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_PROTOBUF_ENABLE,
-        DFSConfigKeys.DFS_BLOCK_ACCESS_TOKEN_PROTOBUF_ENABLE_DEFAULT);
+        DFS_BLOCK_ACCESS_TOKEN_PROTOBUF_ENABLE,
+        DFS_BLOCK_ACCESS_TOKEN_PROTOBUF_ENABLE_DEFAULT);
 
     boolean shouldWrapQOP = conf.getBoolean(
         DFS_NAMENODE_SEND_QOP_ENABLED, DFS_NAMENODE_SEND_QOP_ENABLED_DEFAULT);
@@ -1047,7 +1046,7 @@ public class BlockManager implements BlockStatsMXBean {
   public void setMaxReplicationStreams(int newVal, boolean ensurePositiveInt) {
     if (ensurePositiveInt) {
       ensurePositiveInt(newVal,
-          DFSConfigKeys.DFS_NAMENODE_REPLICATION_MAX_STREAMS_KEY);
+          DFS_NAMENODE_REPLICATION_MAX_STREAMS_KEY);
     }
     maxReplicationStreams = newVal;
   }
@@ -1074,7 +1073,7 @@ public class BlockManager implements BlockStatsMXBean {
    */
   public void setReplicationStreamsHardLimit(int newVal) {
     ensurePositiveInt(newVal,
-        DFSConfigKeys.DFS_NAMENODE_REPLICATION_STREAMS_HARD_LIMIT_KEY);
+        DFS_NAMENODE_REPLICATION_STREAMS_HARD_LIMIT_KEY);
     replicationStreamsHardLimit = newVal;
   }
 
@@ -1096,7 +1095,7 @@ public class BlockManager implements BlockStatsMXBean {
    */
   public void setBlocksReplWorkMultiplier(int newVal) {
     ensurePositiveInt(newVal,
-        DFSConfigKeys.DFS_NAMENODE_REPLICATION_WORK_MULTIPLIER_PER_ITERATION);
+        DFS_NAMENODE_REPLICATION_WORK_MULTIPLIER_PER_ITERATION);
     blocksReplWorkMultiplier = newVal;
   }
 
@@ -1109,7 +1108,7 @@ public class BlockManager implements BlockStatsMXBean {
    */
   public void setReconstructionPendingTimeout(int newVal) {
     ensurePositiveInt(newVal,
-        DFSConfigKeys.DFS_NAMENODE_RECONSTRUCTION_PENDING_TIMEOUT_SEC_KEY);
+        DFS_NAMENODE_RECONSTRUCTION_PENDING_TIMEOUT_SEC_KEY);
     pendingReconstruction.setTimeout(newVal * 1000L);
   }
 
@@ -1412,7 +1411,7 @@ public class BlockManager implements BlockStatsMXBean {
         getStoragePolicySuite()).getLength();
     final long pos = fileLength - lastBlock.getNumBytes();
     return createLocatedBlock(null, lastBlock, pos,
-        BlockTokenIdentifier.AccessMode.WRITE);
+        AccessMode.WRITE);
   }
 
   /**
@@ -1594,10 +1593,10 @@ public class BlockManager implements BlockStatsMXBean {
           Collections.<LocatedBlock> emptyList(), null, false, feInfo, ecPolicy);
     } else {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("blocks = {}", java.util.Arrays.asList(blocks));
+        LOG.debug("blocks = {}", Arrays.asList(blocks));
       }
 
-      final AccessMode mode = needBlockToken? BlockTokenIdentifier.AccessMode.READ: null;
+      final AccessMode mode = needBlockToken? AccessMode.READ: null;
 
       LocatedBlockBuilder locatedBlocks = providedStorageMap
           .newLocatedBlocks(Integer.MAX_VALUE)
@@ -1698,7 +1697,7 @@ public class BlockManager implements BlockStatsMXBean {
    * @param src the path to the target file
    * @param replication the requested replication factor
    * @param clientName the name of the client node making the request
-   * @throws java.io.IOException thrown if the requested replication factor
+   * @throws IOException thrown if the requested replication factor
    * is out of bounds
    */
    public void verifyReplication(String src,
@@ -1777,7 +1776,7 @@ public class BlockManager implements BlockStatsMXBean {
     List<BlockInfo> pending = new ArrayList<BlockInfo>();
     long totalSize = 0;
     BlockInfo curBlock;
-    long hotTimePos = Time.now() - timeInterval;
+    long hotTimePos = now() - timeInterval;
     while(totalSize<size && iter.hasNext()) {
       curBlock = iter.next();
       if(!curBlock.isComplete())  continue;
@@ -2552,12 +2551,12 @@ public class BlockManager implements BlockStatsMXBean {
     final String errorMessage = "File %s could only be written to %d of " +
         "the %d %s. There are %d datanode(s) running and %s "
         + "node(s) are excluded in this operation.";
-    if (blockType == BlockType.CONTIGUOUS && targets.length < minReplication) {
+    if (blockType == CONTIGUOUS && targets.length < minReplication) {
       throw new IOException(String.format(errorMessage, src,
           targets.length, minReplication, "minReplication nodes",
           getDatanodeManager().getNetworkTopology().getNumOfLeaves(),
           (excludedNodes == null? "no": excludedNodes.size())));
-    } else if (blockType == BlockType.STRIPED &&
+    } else if (blockType == STRIPED &&
         targets.length < ecPolicy.getNumDataUnits()) {
       throw new IOException(
           String.format(errorMessage, src, targets.length,
@@ -4819,9 +4818,13 @@ public class BlockManager implements BlockStatsMXBean {
     List<Block> blockPeers = new ArrayList<>();
     for (DatanodeStorageInfo replicaStorage : blocksMap.getStorages(storedBlockInfo)) {
       Block replicaBlock = this.getBlockOnStorage(storedBlockInfo, replicaStorage);
-      LOG.info("Block peer {}-{} on datanode {}, status {}, type {}",
+      BlockInfo blockInfo = this.getStoredBlock(replicaBlock);
+      LOG.info("Block peer {}-{}-{}-{} rep factor {} on datanode {}, status {}, type {}",
               replicaStorage.getStorageType(),
               replicaBlock.getBlockId(),
+              blockInfo.getBlockId(),
+              blockInfo.getGenerationStamp(),
+              blockInfo.getReplication(),
               replicaStorage.getDatanodeDescriptor().getName(),
               replicaStorage.getState(),
               replicaStorage.getStorageType());
@@ -5114,6 +5117,18 @@ public class BlockManager implements BlockStatsMXBean {
     }
     return blocksMap.getStoredBlock(
         new Block(BlockIdManager.convertToStripedID(block.getBlockId())));
+  }
+
+  public BlockInfo mlecGetStoredBlock(Block block) {
+    AtomicReference<BlockInfo> bi = new AtomicReference<>();
+    this.blocksMap.getBlocks().forEach(blockInfo -> {
+      LOG.info("Namenode contains blockinfo {}-{}-{}", blockInfo.getBlockId(), blockInfo.getBlockCollectionId(), blockInfo.getBlockType());
+      if (blockInfo.getBlockId() == block.getBlockId()) {
+        bi.set(blockInfo);
+      }
+    });
+
+    return bi.get();
   }
 
   public void updateLastBlock(BlockInfo lastBlock, ExtendedBlock newBlock) {
@@ -5771,7 +5786,7 @@ public class BlockManager implements BlockStatsMXBean {
       } catch (Throwable t) {
         LOG.error("Error while processing the block report, terminating the "
             + "process", t);
-        ExitUtil.terminate(1,
+        terminate(1,
             getName() + " encountered fatal exception: " + t);
       }
     }
@@ -5813,7 +5828,7 @@ public class BlockManager implements BlockStatsMXBean {
     void enqueue(Runnable action) throws InterruptedException {
       if (!queue.offer(action)) {
         if (!isAlive() && namesystem.isRunning()) {
-          ExitUtil.terminate(1, getName()+" is not running");
+          terminate(1, getName()+" is not running");
         }
         long now = Time.monotonicNow();
         if (now - lastFull > 4000) {
@@ -5921,12 +5936,12 @@ public class BlockManager implements BlockStatsMXBean {
     // sps manager manages the user invoked sps paths and does the movement.
     // StoragePolicySatisfier(SPS) configs
     boolean storagePolicyEnabled = conf.getBoolean(
-        DFSConfigKeys.DFS_STORAGE_POLICY_ENABLED_KEY,
-        DFSConfigKeys.DFS_STORAGE_POLICY_ENABLED_DEFAULT);
+        DFS_STORAGE_POLICY_ENABLED_KEY,
+        DFS_STORAGE_POLICY_ENABLED_DEFAULT);
     String modeVal = spsMode;
     if (org.apache.commons.lang3.StringUtils.isBlank(modeVal)) {
-      modeVal = conf.get(DFSConfigKeys.DFS_STORAGE_POLICY_SATISFIER_MODE_KEY,
-          DFSConfigKeys.DFS_STORAGE_POLICY_SATISFIER_MODE_DEFAULT);
+      modeVal = conf.get(DFS_STORAGE_POLICY_SATISFIER_MODE_KEY,
+          DFS_STORAGE_POLICY_SATISFIER_MODE_DEFAULT);
     }
     StoragePolicySatisfierMode mode = StoragePolicySatisfierMode
         .fromString(modeVal);

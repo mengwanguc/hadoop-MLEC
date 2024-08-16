@@ -1594,7 +1594,7 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
       if (replicaInfo != null) {
         throw new ReplicaAlreadyExistsException("Block " + b +
             " already exists in state " + replicaInfo.getState() +
-            " and thus cannot be created.");
+            " and thus cannot be created (Creating RBW).");
       }
       // create a new block
       FsVolumeReference ref = null;
@@ -1858,9 +1858,11 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
           if (((currentReplicaInfo.getGenerationStamp() >= b
               .getGenerationStamp()) || (!isTransfer && !isInPipeline))
               && !isReplicaProvided(currentReplicaInfo)) {
+            LOG.error("Current replica gen stamp {}, block gen stamp {}", currentReplicaInfo.getGenerationStamp(),
+                    b.getGenerationStamp());
             throw new ReplicaAlreadyExistsException("Block " + b
                 + " already exists in state " + currentReplicaInfo.getState()
-                + " and thus cannot be created.");
+                + " and thus cannot be created (Creating temp).");
           }
           lastFoundReplicaInfo = currentReplicaInfo;
         }
