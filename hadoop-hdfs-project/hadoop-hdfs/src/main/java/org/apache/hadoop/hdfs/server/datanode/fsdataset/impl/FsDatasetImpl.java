@@ -1855,9 +1855,11 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
            * else if state is not RBW/Temporary, then reject
            * If current block is PROVIDED, ignore the replica.
            */
+          // MLEC check: if its mlec, we *want* in-place update, so we skip the finalized check
           if (((currentReplicaInfo.getGenerationStamp() >= b
               .getGenerationStamp()) || (!isTransfer && !isInPipeline))
-              && !isReplicaProvided(currentReplicaInfo)) {
+              && !isReplicaProvided(currentReplicaInfo)
+              && storageType != StorageType.ZFS) {
             LOG.error("Current replica gen stamp {}, block gen stamp {}", currentReplicaInfo.getGenerationStamp(),
                     b.getGenerationStamp());
             throw new ReplicaAlreadyExistsException("Block " + b
@@ -1867,9 +1869,11 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
           lastFoundReplicaInfo = currentReplicaInfo;
         }
       }
+
       if (!isInPipeline) {
         continue;
       }
+
       // Hang too long, just bail out. This is not supposed to happen.
       long writerStopMs = Time.monotonicNow() - startTimeMs;
       if (writerStopMs > writerStopTimeoutMs) {
@@ -1888,15 +1892,21 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
       // Stop the previous writer
       ((ReplicaInPipeline)lastFoundReplicaInfo).stopWriter(writerStopTimeoutMs);
     } while (true);
+
+
     long holdLockTimeMs = Time.monotonicNow() - startTimeMs;
+
+    // MLEC: if its ZFS, we do not want to invalidate the old block because we still wnat to write to it
     if (lastFoundReplicaInfo != null
-        && !isReplicaProvided(lastFoundReplicaInfo)) {
+        && !isReplicaProvided(lastFoundReplicaInfo)
+        && storageType != StorageType.ZFS) {
       // Old blockfile should be deleted synchronously as it might collide
       // with the new block if allocated in same volume.
       // Do the deletion outside of lock as its DISK IO.
       invalidate(b.getBlockPoolId(), new Block[] { lastFoundReplicaInfo },
           false);
     }
+
     long startHoldLockTimeMs = Time.monotonicNow();
     FsVolumeReference ref = volumes.getNextVolume(storageType, storageId, b
         .getNumBytes());
@@ -1906,7 +1916,7 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
         b.getBlockPoolId(), v.getStorageID())) {
       try {
         newReplicaInfo = v.createTemporary(b);
-        LOG.debug("creating temporary for block: {} on volume: {}",
+        LOG.info("creating temporary for block: {} on volume: {}",
             b, ref.getVolume());
       } catch (IOException e) {
         IOUtils.cleanupWithLogger(null, ref);

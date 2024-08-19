@@ -261,6 +261,7 @@ class FsDatasetAsyncDiskService {
   void deleteSync(FsVolumeReference volumeRef, ReplicaInfo replicaToDelete,
       ExtendedBlock block, String trashDirectory) {
     LOG.info("Deleting " + block.getLocalBlock() + " replica " + replicaToDelete);
+    Thread.dumpStack();
     ReplicaFileDeleteTask deletionTask = new ReplicaFileDeleteTask(volumeRef,
         replicaToDelete, block, trashDirectory);
     deletionTask.run();

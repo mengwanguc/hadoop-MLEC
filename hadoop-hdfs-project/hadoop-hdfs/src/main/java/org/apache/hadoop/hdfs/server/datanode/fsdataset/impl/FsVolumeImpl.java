@@ -1346,6 +1346,7 @@ public class FsVolumeImpl implements FsVolumeSpi {
   public ReplicaInPipeline createTemporary(ExtendedBlock b) throws IOException {
     // create a temporary file to hold block in the designated volume
     File f = createTmpFile(b.getBlockPoolId(), b.getLocalBlock());
+    LOG.info("Created temp file at path {}", f.getAbsolutePath());
     LocalReplicaInPipeline newReplicaInfo =
         new ReplicaBuilder(ReplicaState.TEMPORARY)
           .setBlockId(b.getBlockId())
