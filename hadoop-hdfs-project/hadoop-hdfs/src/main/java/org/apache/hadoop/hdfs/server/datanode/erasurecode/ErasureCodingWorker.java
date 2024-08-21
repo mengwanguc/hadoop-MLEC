@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hdfs.server.datanode.erasurecode;
 
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.util.ZfsUtil;
@@ -33,12 +34,8 @@ import org.slf4j.Logger;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -50,6 +47,7 @@ import java.util.stream.Collectors;
  */
 @InterfaceAudience.Private
 public final class ErasureCodingWorker {
+  public static Map<Long, Boolean> ongoingRepairs = new ConcurrentHashMap<>();
   private static final Logger LOG = DataNode.LOG;
 
   private final DataNode datanode;
@@ -143,6 +141,10 @@ public final class ErasureCodingWorker {
                 reconInfo.getTargetStorageTypes(), reconInfo.getTargetStorageIDs(),
                 reconInfo.getZfsFailureIndices(),
                 reconInfo.getLiveBlockIndices());
+
+        // MLEC - register ongoing repairs
+        LOG.info("Adding block {} to ongoing reconstruction map", reconInfo.getExtendedBlock().getBlockId());
+        ErasureCodingWorker.ongoingRepairs.put(reconInfo.getExtendedBlock().getBlockId(), true);
 
         StripedReconstructionInfo stripedReconInfo =
             new StripedReconstructionInfo(

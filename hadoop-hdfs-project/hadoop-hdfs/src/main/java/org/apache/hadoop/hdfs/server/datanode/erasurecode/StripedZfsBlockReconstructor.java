@@ -94,6 +94,10 @@ public class StripedZfsBlockReconstructor extends StripedBlockReconstructor
       getStripedReader().close();
       stripedWriter.close();
       cleanup();
+
+      // MLEC - clear repair bookkeeping maps
+      LOG.info("Clearing ongoing repair map entry {}", getBlockGroup().getBlockId());
+      ErasureCodingWorker.ongoingRepairs.remove(getBlockGroup().getBlockId());
     }
   }
 

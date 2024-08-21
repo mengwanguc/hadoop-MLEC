@@ -551,7 +551,7 @@ class HeartbeatManager implements DatanodeStatistics {
     @Override
     public void run() {
       while(namesystem.isRunning()) {
-        LOG.info("HeartbeatManager running");
+        LOG.info("HeartbeatManager runningggggg");
         restartHeartbeatStopWatch();
         try {
           final long now = Time.monotonicNow();

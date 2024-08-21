@@ -182,6 +182,9 @@ class StripedBlockReconstructor extends StripedReconstructor
       clearBuffers();
     }
 
+    // MLEC - clear repair bookkeeping maps
+    ErasureCodingWorker.ongoingRepairs.remove(getBlockGroup().getBlockId());
+
     LOG.warn("Reconstruction ended at {}, total {} seconds", Instant.ofEpochMilli(Time.now()).toString(),
             (Time.monotonicNow() - loopStart));
     LOG.warn("Total read {} bytes, wrote {} bytes", bytesRead, bytesTransferred);

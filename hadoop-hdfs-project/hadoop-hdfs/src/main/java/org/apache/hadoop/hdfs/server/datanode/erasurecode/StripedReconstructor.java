@@ -103,6 +103,7 @@ import java.util.concurrent.atomic.AtomicLong;
 abstract class StripedReconstructor {
   protected static final Logger LOG = DataNode.LOG;
 
+  protected StripedReconstructionInfo reconInfo;
   private final Configuration conf;
   private final DataNode datanode;
   private final ErasureCodingPolicy ecPolicy;
@@ -133,6 +134,7 @@ abstract class StripedReconstructor {
 
   StripedReconstructor(ErasureCodingWorker worker,
       StripedReconstructionInfo stripedReconInfo) {
+    this.reconInfo = stripedReconInfo;
     this.erasureCodingWorker = worker;
     this.datanode = worker.getDatanode();
     this.conf = worker.getConf();
