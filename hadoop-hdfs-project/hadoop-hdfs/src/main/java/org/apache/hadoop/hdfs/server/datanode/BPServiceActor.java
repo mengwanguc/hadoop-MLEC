@@ -558,55 +558,60 @@ class BPServiceActor implements Runnable {
     LOG.info("**********Heartbeating************");
     // If there is a repair on-going, we do not call failed chunks
     // This is to work around the kernel panic on the dn->dn_holds on the ZFS side
-    if (ErasureCodingWorker.ongoingRepairs.isEmpty()) {
-      List<DnodeAttributes> dnodes = new Tools().getFailedChunks("pool");
-      // This means that there is ZFS local failure
-      for (DnodeAttributes dnode : dnodes) {
-        // Enable this during real testing
-//      if (dnode.numFailedCols() == 0) {
-//        continue;
-//      }
+    // Loop around all the volumes on this datanode, and check for ZFS failures
+    for (DatanodeVolumeInfo volInfo : dn.getVolumeReport()) {
+      if (volInfo.getStorageType() == StorageType.ZFS) {
+        if (ErasureCodingWorker.ongoingRepairs.isEmpty()) {
+          List<DnodeAttributes> dnodes = new Tools().getFailedChunks("pool");
+          // This means that there is ZFS local failure
+          for (DnodeAttributes dnode : dnodes) {
+            // Enable this during real testing
+            // if (dnode.numFailedCols() == 0) {
+            //   continue;
+            // }
 
-        // Check whether this dnode is actually on this datanode instance
-        DatanodeVolumeInfo volumeInfo = this.dn.getVolumeReport().stream()
-                .filter(vi -> vi.getStorageType() == StorageType.ZFS)
-                .collect(Collectors.toList())
-                .get(0);
+            // Check whether this dnode is actually on this datanode instance
+            DatanodeVolumeInfo volumeInfo = this.dn.getVolumeReport().stream()
+                    .filter(vi -> vi.getStorageType() == StorageType.ZFS)
+                    .collect(Collectors.toList())
+                    .get(0);
 
-        // 1. Check whether the dnode actually belongs to this datanode volume (for local testing env)
-        Path path = Paths.get(volumeInfo.getPath(), dnode.path);
-        if (!Files.exists(path)) {
-          continue;
+            // 1. Check whether the dnode actually belongs to this datanode volume (for local testing env)
+            Path path = Paths.get(volumeInfo.getPath(), dnode.path);
+            if (!Files.exists(path)) {
+              continue;
+            }
+
+            // 2. Check whether this dnode is a hdfs block (rather than directory, metadata, etc)
+            Optional<Matcher> matcher = ZfsFailureTuple.isHdfsBlock(dnode);
+            if (!matcher.isPresent()) {
+              continue;
+            }
+
+            // This means that this is a block file, not directory, not anything else
+            // Get the block from the file name
+            long hdfsBlockId = Long.parseLong(matcher.get().group(1));
+
+            // If this is already a known issue, we ignore
+            if (this.mlecDnMgmt.knownFailures.containsKey(hdfsBlockId)) {
+              continue;
+            }
+
+            LOG.info("Failed hdfs block on {}:{} {} corresponding to zfs dn {}", dn.getDatanodeHostname(), dn.getHttpPort(),
+                    hdfsBlockId, dnode);
+
+            // MLEC: testing purpose
+            dnode.childStatus.set(0, 1);
+
+            ZfsFailureTuple failureTuple = new ZfsFailureTuple(hdfsBlockId, dnode.childStatus);
+            zfsReport.getFailedHdfsBlocks().add(failureTuple);
+
+            this.mlecDnMgmt.knownFailures.put(hdfsBlockId, failureTuple);
+          }
+        } else {
+          LOG.warn("REPAIR ON-GOING, skipping");
         }
-
-        // 2. Check whether this dnode is a hdfs block (rather than directory, metadata, etc)
-        Optional<Matcher> matcher = ZfsFailureTuple.isHdfsBlock(dnode);
-        if (!matcher.isPresent()) {
-          continue;
-        }
-
-        // This means that this is a block file, not directory, not anything else
-        // Get the block from the file name
-        long hdfsBlockId = Long.parseLong(matcher.get().group(1));
-
-        // If this is already a known issue, we ignore
-        if (this.mlecDnMgmt.knownFailures.containsKey(hdfsBlockId)) {
-          continue;
-        }
-
-        LOG.info("Failed hdfs block on {}:{} {} corresponding to zfs dn {}", dn.getDatanodeHostname(), dn.getHttpPort(),
-                hdfsBlockId, dnode);
-
-        // MLEC: testing purpose
-        dnode.childStatus.set(0, 1);
-
-        ZfsFailureTuple failureTuple = new ZfsFailureTuple(hdfsBlockId, dnode.childStatus);
-        zfsReport.getFailedHdfsBlocks().add(failureTuple);
-
-        this.mlecDnMgmt.knownFailures.put(hdfsBlockId, failureTuple);
       }
-    } else {
-      LOG.warn("REPAIR ON-GOING, skipping");
     }
 
     HeartbeatResponse response = bpNamenode.sendHeartbeat(bpRegistration,

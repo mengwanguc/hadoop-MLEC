@@ -2187,7 +2187,7 @@ public class BlockManager implements BlockStatsMXBean {
       // Check whether rw is ZFS
       Set<StorageType> blockStorageTypes = new HashSet<>();
       rw.getBlock().getStorageInfos().forEachRemaining(info -> blockStorageTypes.add(info.getStorageType()));
-      if (blockStorageTypes.size() == 1 && blockStorageTypes.contains(StorageType.ZFS)) {
+      if (blockStorageTypes.contains(StorageType.ZFS)) {
         // The block is ZFS, we would need to restore it back to the same datanode that it is coming from
         // However, we cannot directly write, because that IO pool would be suspended, the write will fail
         // We need to instruct the writer to call a different API
@@ -2316,7 +2316,9 @@ public class BlockManager implements BlockStatsMXBean {
     if (block.isStriped()) {
       BlockInfoStriped stripedBlock = (BlockInfoStriped) block;
       if (stripedBlock.getRealDataBlockNum() > srcNodes.length) {
-        LOG.info("Block {} cannot be reconstructed due to shortage of source datanodes ", block);
+        LOG.info("Block {} cannot be reconstructed due to shortage of source datanodes, " +
+                "real data block num {}, src nodes {}", block, stripedBlock.getRealDataBlockNum(), srcNodes.length);
+        LOG.info("Source nodes {}", srcNodes);
         NameNode.getNameNodeMetrics().incNumTimesReReplicationNotScheduled();
         return null;
       }
@@ -2660,6 +2662,7 @@ public class BlockManager implements BlockStatsMXBean {
     }
 
     for (DatanodeStorageInfo storage : blocksMap.getStorages(block)) {
+      LOG.info("Checking source storage {}", storage);
       final DatanodeDescriptor node = getDatanodeDescriptorFromStorage(storage);
       final StoredReplicaState state = checkReplicaOnStorage(numReplicas, block,
           storage, corruptReplicas.getNodes(block), false);
