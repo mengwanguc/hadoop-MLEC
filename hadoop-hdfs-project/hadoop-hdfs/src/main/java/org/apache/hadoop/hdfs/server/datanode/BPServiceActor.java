@@ -561,8 +561,12 @@ class BPServiceActor implements Runnable {
     // Loop around all the volumes on this datanode, and check for ZFS failures
     for (DatanodeVolumeInfo volInfo : dn.getVolumeReport()) {
       if (volInfo.getStorageType() == StorageType.ZFS) {
+        LOG.info("Heartbeating ZFS");
         if (ErasureCodingWorker.ongoingRepairs.isEmpty()) {
           List<DnodeAttributes> dnodes = new Tools().getFailedChunks("pool");
+          if (dnodes == null) {
+            dnodes = new ArrayList<>();
+          }
           // This means that there is ZFS local failure
           for (DnodeAttributes dnode : dnodes) {
             // Enable this during real testing
