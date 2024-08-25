@@ -153,7 +153,7 @@ import org.slf4j.LoggerFactory;
  * a. # of live replicas &gt;= # of min replication for maintenance.
  * b. # of live replicas &lt;= # of expected redundancy.
  * c. # of live replicas and maintenance replicas &gt;= # of expected
- * redundancy.
+ * redundancy.C
  *
  * For regular replication, # of min live replicas for maintenance is determined
  * by {@link DFSConfigKeys#DFS_NAMENODE_MAINTENANCE_REPLICATION_MIN_KEY}. This number has to &lt;=

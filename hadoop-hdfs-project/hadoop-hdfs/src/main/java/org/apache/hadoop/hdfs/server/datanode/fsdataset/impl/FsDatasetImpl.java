@@ -60,6 +60,7 @@ import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSUtilClient;
 import org.apache.hadoop.hdfs.ExtendedBlockId;
+import org.apache.hadoop.hdfs.server.blockmanagement.BlockInfo;
 import org.apache.hadoop.hdfs.server.common.AutoCloseDataSetLock;
 import org.apache.hadoop.hdfs.server.common.DataNodeLockManager;
 import org.apache.hadoop.hdfs.server.common.DataNodeLockManager.LockLevel;
@@ -67,6 +68,7 @@ import org.apache.hadoop.hdfs.server.datanode.DataSetLockManager;
 import org.apache.hadoop.hdfs.server.datanode.FileIoProvider;
 import org.apache.hadoop.hdfs.server.datanode.FinalizedReplica;
 import org.apache.hadoop.hdfs.server.datanode.LocalReplica;
+import org.apache.hadoop.hdfs.server.datanode.erasurecode.ErasureCodingWorker;
 import org.apache.hadoop.hdfs.server.datanode.metrics.DataNodeMetrics;
 import org.apache.hadoop.util.AutoCloseableLock;
 import org.apache.hadoop.hdfs.protocol.Block;
@@ -1912,8 +1914,18 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
         .getNumBytes());
     FsVolumeImpl v = (FsVolumeImpl) ref.getVolume();
     ReplicaInPipeline newReplicaInfo;
+
+    LOG.info("Creating temporary block for block {} of type {}", b.getBlockId(), storageType);
     try (AutoCloseableLock lock = lockManager.writeLock(LockLevel.VOLUME,
         b.getBlockPoolId(), v.getStorageID())) {
+
+      Block storedBlock = this.getStoredBlock(b.getBlockPoolId(), b.getBlockId());
+      LOG.info("stored block is {}", storedBlock.getBlockId());
+      // MLEC logic, if the block we are writing to belongs to a MLEC repair
+      if (storageType == StorageType.ZFS && ErasureCodingWorker.ongoingRepairs.containsKey(b.getBlockId())) {
+        LOG.warn("This is a MLEC reconstruction write");
+      }
+
       try {
         newReplicaInfo = v.createTemporary(b);
         LOG.info("creating temporary for block: {} on volume: {}",
