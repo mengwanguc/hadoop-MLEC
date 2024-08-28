@@ -19,7 +19,9 @@ package org.apache.hadoop.hdfs.server.datanode.erasurecode;
 
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.hadoop.fs.StorageType;
+import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
+import org.apache.hadoop.hdfs.server.datanode.Replica;
 import org.apache.hadoop.hdfs.util.ZfsUtil;
 import org.apache.hadoop.util.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -48,6 +50,7 @@ import java.util.stream.Collectors;
 @InterfaceAudience.Private
 public final class ErasureCodingWorker {
   public static Map<Long, Boolean> ongoingRepairs = new ConcurrentHashMap<>();
+  public int oof; // out of focus
   private static final Logger LOG = DataNode.LOG;
 
   private final DataNode datanode;
@@ -92,12 +95,12 @@ public final class ErasureCodingWorker {
             return t;
           }
         },
-        new ThreadPoolExecutor.CallerRunsPolicy() {
+          new ThreadPoolExecutor.CallerRunsPolicy() {
           @Override
           public void rejectedExecution(Runnable runnable,
                                         ThreadPoolExecutor e) {
             LOG.info("Execution for striped reading rejected, "
-                + "Executing in current thread");
+                + "Executing in current threadas the last resort.");
             // will run in the current thread
             super.rejectedExecution(runnable, e);
           }
@@ -143,8 +146,12 @@ public final class ErasureCodingWorker {
                 reconInfo.getLiveBlockIndices());
 
         // MLEC - register ongoing repairs
-        LOG.info("Adding block {} to ongoing reconstruction map", reconInfo.getExtendedBlock().getBlockId());
-        ErasureCodingWorker.ongoingRepairs.put(reconInfo.getExtendedBlock().getBlockId(), true);
+        LOG.info("Adding block {} to ongoing reconstruction map", reconInfo.getExtendedBlock().getLocalBlock().getBlockId());
+        Block storedBlock = reconInfo.getExtendedBlock().getLocalBlock();
+        // We store the blockId of the stored block instead of the extended block (this block is local)
+        LOG.info("Stored block {}", storedBlock.getBlockId());
+
+        ErasureCodingWorker.ongoingRepairs.put(storedBlock.getBlockId(), true);
 
         StripedReconstructionInfo stripedReconInfo =
             new StripedReconstructionInfo(
@@ -200,7 +207,7 @@ public final class ErasureCodingWorker {
 
   public void shutDown() {
     stripedReconstructionPool.shutdown();
-    stripedReadPool.shutdown();
+      stripedReadPool.shutdown();
   }
 
   public float getXmitWeight() {

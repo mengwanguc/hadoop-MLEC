@@ -703,10 +703,10 @@ public class DatanodeDescriptor extends DatanodeInfo {
   void addBlockToBeErasureCoded(ExtendedBlock block,
       DatanodeDescriptor[] sources, DatanodeStorageInfo[] targets,
       byte[] liveBlockIndices, byte[] excludeReconstrutedIndices, ErasureCodingPolicy ecPolicy,
-      List<Integer> zfsFailureIndices) {
+      List<Integer> zfsFailureIndices, long localBlockId) {
     assert (block != null && sources != null && sources.length > 0);
     BlockECReconstructionInfo task = new BlockECReconstructionInfo(block,
-        sources, targets, liveBlockIndices, excludeReconstrutedIndices, ecPolicy, zfsFailureIndices);
+        sources, targets, liveBlockIndices, excludeReconstrutedIndices, ecPolicy, zfsFailureIndices, localBlockId);
     ecBlocksToBeErasureCoded.offer(task);
     BlockManager.LOG.info("Adding EC block reconstruction task " + task + " to "
         + getHostName() + ", current queue size is " + ecBlocksToBeErasureCoded.size() + " zfs failure indices " + zfsFailureIndices);

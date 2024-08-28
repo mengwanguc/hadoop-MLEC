@@ -45,6 +45,8 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
+import jni.DnodeAttributes;
+import jni.Tools;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.HardLink;
 import org.apache.hadoop.classification.VisibleForTesting;
@@ -1858,6 +1860,7 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
            * If current block is PROVIDED, ignore the replica.
            */
           // MLEC check: if its mlec, we *want* in-place update, so we skip the finalized check
+          LOG.info("MLEC ongoing repair {}", ErasureCodingWorker.ongoingRepairs);
           if (((currentReplicaInfo.getGenerationStamp() >= b
               .getGenerationStamp()) || (!isTransfer && !isInPipeline))
               && !isReplicaProvided(currentReplicaInfo)
@@ -1924,19 +1927,37 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
       // MLEC logic, if the block we are writing to belongs to a MLEC repair
       if (storageType == StorageType.ZFS && ErasureCodingWorker.ongoingRepairs.containsKey(b.getBlockId())) {
         LOG.warn("This is a MLEC reconstruction write");
-      }
+        Tools mlecTools = new Tools();
+        List<DnodeAttributes> failedDnodes = mlecTools.getFailedChunks("pool");
 
-      try {
-        newReplicaInfo = v.createTemporary(b);
-        LOG.info("creating temporary for block: {} on volume: {}",
-            b, ref.getVolume());
-      } catch (IOException e) {
-        IOUtils.cleanupWithLogger(null, ref);
-        throw e;
-      }
+        DnodeAttributes toRepair = null;
+        for (DnodeAttributes dnode :failedDnodes) {
+          if (dnode.path.contains(String.valueOf(b.getBlockId()))) {
+            toRepair = dnode;
+          }
+        }
 
-      volumeMap.add(b.getBlockPoolId(), newReplicaInfo.getReplicaInfo());
-      return new ReplicaHandler(newReplicaInfo, ref);
+        if (toRepair == null) {
+          throw new IllegalStateException("Cannot find the dnode attributes for mlec repair of block " + b.getBlockId());
+        }
+
+        // MLEC create a callback to the following
+        // mlecTools.writeRepairData("pool", toRepair, 0, 0, );
+        ReplicaInPipeline mlecReplica = v.createMlecRepair(b);
+        return new ReplicaHandler(mlecReplica, ref);
+      } else {
+        try {
+          newReplicaInfo = v.createTemporary(b);
+          LOG.info("creating temporary for block: {} on volume: {}",
+                  b, ref.getVolume());
+        } catch (IOException e) {
+          IOUtils.cleanupWithLogger(null, ref);
+          throw e;
+        }
+
+        volumeMap.add(b.getBlockPoolId(), newReplicaInfo.getReplicaInfo());
+        return new ReplicaHandler(newReplicaInfo, ref);
+      }
     } finally {
       if (dataNodeMetrics != null) {
         // Create temporary operation hold write lock twice.

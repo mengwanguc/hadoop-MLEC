@@ -62,6 +62,7 @@ import org.apache.hadoop.hdfs.server.datanode.FileIoProvider;
 import org.apache.hadoop.hdfs.server.datanode.FinalizedReplica;
 import org.apache.hadoop.hdfs.server.datanode.LocalReplica;
 import org.apache.hadoop.hdfs.server.datanode.LocalReplicaInPipeline;
+import org.apache.hadoop.hdfs.server.datanode.MLECRepairReplicaInPipeline;
 import org.apache.hadoop.hdfs.server.datanode.ReplicaBeingWritten;
 import org.apache.hadoop.hdfs.server.datanode.ReplicaBuilder;
 import org.apache.hadoop.hdfs.server.datanode.ReplicaInPipeline;
@@ -1356,6 +1357,22 @@ public class FsVolumeImpl implements FsVolumeSpi {
           .setFsVolume(this)
           .buildLocalReplicaInPipeline();
     return newReplicaInfo;
+  }
+
+  public ReplicaInPipeline createMlecRepair(ExtendedBlock b) throws IOException {
+    File f = getFinalizedDir(b.getBlockPoolId());
+
+    ReplicaInPipeline mlecRepairInfo = new ReplicaBuilder(ReplicaState.FINALIZED)
+            .setBlockId(b.getBlockId())
+            .setGenerationStamp(b.getGenerationStamp())
+            .setDirectoryToUse(f)
+            .setBytesToReserve(b.getLocalBlock().getNumBytes())
+            .setFsVolume(this)
+            .buildLocalReplicaInPipeline();
+
+    LOG.info("ReplicaInPipeline created {}", mlecRepairInfo);
+
+    return mlecRepairInfo;
   }
 
   public ReplicaInPipeline updateRURCopyOnTruncate(ReplicaInfo rur,

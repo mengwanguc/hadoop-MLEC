@@ -83,25 +83,26 @@ public class BlockECReconstructionCommand extends DatanodeCommand {
     private final ErasureCodingPolicy ecPolicy;
 
     // MLEC stuff
+    private long localBlockId;
     private List<Integer> zfsFailureIndices;
 
     public BlockECReconstructionInfo(ExtendedBlock block,
         DatanodeInfo[] sources, DatanodeStorageInfo[] targetDnStorageInfo,
         byte[] liveBlockIndices, byte[] excludeReconstructedIndices, ErasureCodingPolicy ecPolicy,
-        List<Integer> zfsFailureIndices) {
+        List<Integer> zfsFailureIndices, long localBlockId) {
       this(block, sources, DatanodeStorageInfo
           .toDatanodeInfos(targetDnStorageInfo), DatanodeStorageInfo
           .toStorageIDs(targetDnStorageInfo), DatanodeStorageInfo
           .toStorageTypes(targetDnStorageInfo), liveBlockIndices,
           excludeReconstructedIndices, ecPolicy,
-          zfsFailureIndices);
+          zfsFailureIndices, localBlockId);
     }
 
     public BlockECReconstructionInfo(ExtendedBlock block,
         DatanodeInfo[] sources, DatanodeInfo[] targets,
         String[] targetStorageIDs, StorageType[] targetStorageTypes,
         byte[] liveBlockIndices, byte[] excludeReconstructedIndices, ErasureCodingPolicy ecPolicy,
-        List<Integer> zfsFailureIndices) {
+        List<Integer> zfsFailureIndices, long localBlockId) {
       this.block = block;
       this.sources = sources;
       this.targets = targets;
@@ -112,6 +113,7 @@ public class BlockECReconstructionCommand extends DatanodeCommand {
       this.excludeReconstructedIndices = excludeReconstructedIndices;
       this.ecPolicy = ecPolicy;
       this.zfsFailureIndices = zfsFailureIndices;
+      this.localBlockId = localBlockId;
     }
 
     public ExtendedBlock getExtendedBlock() {

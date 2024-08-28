@@ -292,9 +292,9 @@ public class LocalReplicaInPipeline extends LocalReplica
     final File blockFile = getBlockFile();
     final File metaFile = getMetaFile();
     if (DataNode.LOG.isDebugEnabled()) {
-      DataNode.LOG.debug("writeTo blockfile is " + blockFile +
+      DataNode.LOG.info("writeTo blockfile is " + blockFile +
                          " of size " + blockFile.length());
-      DataNode.LOG.debug("writeTo metafile is " + metaFile +
+      DataNode.LOG.info("writeTo metafile is " + metaFile +
                          " of size " + metaFile.length());
     }
     long blockDiskSize = 0L;

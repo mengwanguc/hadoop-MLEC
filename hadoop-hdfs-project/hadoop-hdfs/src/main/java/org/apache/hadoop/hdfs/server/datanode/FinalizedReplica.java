@@ -167,4 +167,5 @@ public class FinalizedReplica extends LocalReplica {
         getBlockFile(), getMetaFile());
     setLastPartialChunkChecksum(lastChecksum);
   }
+
 }

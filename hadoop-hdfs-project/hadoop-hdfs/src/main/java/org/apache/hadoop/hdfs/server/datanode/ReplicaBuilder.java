@@ -29,12 +29,16 @@ import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.server.common.FileRegion;
 import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.ReplicaState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class is to be used as a builder for {@link ReplicaInfo} objects.
  * The state of the replica is used to determine which object is instantiated.
  */
 public class ReplicaBuilder {
+
+  private Logger LOG = LoggerFactory.getLogger(ReplicaBuilder.class);
 
   private ReplicaState state;
   private long blockId;
@@ -187,15 +191,18 @@ public class ReplicaBuilder {
   public LocalReplicaInPipeline buildLocalReplicaInPipeline()
       throws IllegalArgumentException {
     LocalReplicaInPipeline info = null;
-    switch(state) {
-    case RBW:
-      info = buildRBW();
-      break;
-    case TEMPORARY:
-      info = buildTemporaryReplica();
-      break;
-    default:
-      throw new IllegalArgumentException("Unknown replica state " + state);
+    switch (state) {
+      case RBW:
+        info = buildRBW();
+        break;
+      case TEMPORARY:
+        info = buildTemporaryReplica();
+        break;
+      case FINALIZED:
+        info = buildMlecRepairReplica();
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown replica state " + state);
     }
     return info;
   }
@@ -224,6 +231,14 @@ public class ReplicaBuilder {
         }
       }
     }
+  }
+
+  private LocalReplicaInPipeline buildMlecRepairReplica() throws IllegalArgumentException {
+    LOG.info("Local replica in pipeline {}, {}, {}", blockId, length, genStamp);
+    LocalReplicaInPipeline replica = new LocalReplicaInPipeline(blockId, length, genStamp,
+            volume, directoryUsed, writer, bytesToReserve);
+
+    return replica;
   }
 
   private LocalReplicaInPipeline buildTemporaryReplica()

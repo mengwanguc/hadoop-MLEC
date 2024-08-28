@@ -2393,8 +2393,11 @@ public class BlockManager implements BlockStatsMXBean {
           .map(ZfsFailureTuple::getEcIndex)
           .collect(Collectors.toList());
 
-        LOG.info("Setting zfsFailureIndices for EC work {}", zfsFailureIndices);
+        LOG.info("Setting zfsFailureIndices for block {} EC work {}", block.getBlockId(), zfsFailureIndices);
+        LOG.info("Failure source for block {} is {}", block.getBlockId(),this.zfsBlockMgr.getFailureTuple(block));
+        ZfsFailureTuple tuple = this.zfsBlockMgr.getFailureTuple(block).get(0);
         ecWork.setZfsFailureIndices(zfsFailureIndices);
+        ecWork.setLocalBlockId(tuple.getFailedBlock());
       }
 
       return ecWork;
