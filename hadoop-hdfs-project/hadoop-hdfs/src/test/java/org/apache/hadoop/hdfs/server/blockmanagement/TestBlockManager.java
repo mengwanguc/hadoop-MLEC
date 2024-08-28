@@ -1005,9 +1005,9 @@ public class TestBlockManager {
     // Simulate the 2 nodes reach maxReplicationStreams.
     for(int i = 0; i < bm.getMaxReplicationStreams(); i++){ //Add some dummy EC reconstruction task.
       ds3.getDatanodeDescriptor().addBlockToBeErasureCoded(dummyBlock, dummyDDArray,
-              dummyDSArray, new byte[0], new byte[0], ecPolicy, null);
+              dummyDSArray, new byte[0], new byte[0], ecPolicy, null, 0);
       ds4.getDatanodeDescriptor().addBlockToBeErasureCoded(dummyBlock, dummyDDArray,
-              dummyDSArray, new byte[0], new byte[0], ecPolicy, null);
+              dummyDSArray, new byte[0], new byte[0], ecPolicy, null, 0);
     }
 
     // Reconstruction should be skipped since the number of non-busy nodes are not enough.
