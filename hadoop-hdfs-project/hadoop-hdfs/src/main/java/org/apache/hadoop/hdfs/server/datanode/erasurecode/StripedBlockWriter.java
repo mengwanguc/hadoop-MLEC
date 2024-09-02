@@ -174,6 +174,8 @@ class StripedBlockWriter {
       return;
     }
 
+    LOG.info("Transferring {} bytes in StripedBlockWriter", packetBuf.length);
+
     if (targetBuffer.isDirect()) {
       ByteBuffer directCheckSumBuf =
           BUFFER_POOL.getBuffer(true, stripedWriter.getChecksumBuf().length);

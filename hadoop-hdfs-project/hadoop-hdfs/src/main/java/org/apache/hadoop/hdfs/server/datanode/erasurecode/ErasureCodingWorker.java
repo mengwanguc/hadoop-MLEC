@@ -147,12 +147,12 @@ public final class ErasureCodingWorker {
                 reconInfo.getLocalBlockId());
 
         // MLEC - register ongoing repairs
-        LOG.info("Adding block {} to ongoing reconstruction map", reconInfo.getExtendedBlock().getLocalBlock().getBlockId());
-        Block storedBlock = reconInfo.getExtendedBlock().getLocalBlock();
+        LOG.info("Adding block {} to ongoing reconstruction map", reconInfo.getLocalBlockId());
+        Block stripedBlock = reconInfo.getExtendedBlock().getLocalBlock();
         // We store the blockId of the stored block instead of the extended block (this block is local)
-        LOG.info("Stored block {}", storedBlock.getBlockId());
+        LOG.info("Striped block {}", stripedBlock.getBlockId());
 
-        ErasureCodingWorker.ongoingRepairs.put(storedBlock.getBlockId(), true);
+        ErasureCodingWorker.ongoingRepairs.put(reconInfo.getLocalBlockId(), true);
 
         StripedReconstructionInfo stripedReconInfo =
             new StripedReconstructionInfo(

@@ -145,6 +145,7 @@ public class ReplicaOutputStreams implements Closeable {
 
   public void writeDataToDisk(byte[] b, int off, int len)
       throws IOException {
+    LOG.info("Writing offset {} + len {} to outputstream", off, len);
     dataOut.write(b, off, len);
   }
 
