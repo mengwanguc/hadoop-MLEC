@@ -717,7 +717,7 @@ class BlockReceiver implements Closeable {
           List<DnodeAttributes> dnodes = zfsTools.getFailedChunks("pool");
           DnodeAttributes reconDnode = null;
           for (DnodeAttributes dn : dnodes) {
-            if (dn.path.contains(String.valueOf(block.getBlockId()))) {
+            if (dn.path.contains(String.valueOf(block.getBlockId())) && !dn.path.contains("meta")) {
               reconDnode = dn;
             }
           }
@@ -728,8 +728,9 @@ class BlockReceiver implements Closeable {
             throw new IllegalStateException("Cannot find reconstruction dnode for block " + block.getBlockId());
           }
 
+          LOG.info("Writing to dnode at colIdx {}", header.getColIdx());
           // TODO: pass in the column index information into the DFS packet
-          new Tools().writeRepairData("pool", reconDnode, 0, 0, dataBuf.array());
+          new Tools().writeRepairData("pool", reconDnode, 0, header.getColIdx(), dataBuf.array());
         }
 
         if (onDiskLen<offsetInBlock) {

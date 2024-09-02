@@ -165,6 +165,25 @@ class StripedWriter {
     return nSuccess;
   }
 
+  // MLEC override
+  int transferData2Targets(int columnIdx) {
+    int nSuccess = 0;
+    for (int i = 0; i < targets.length; i++) {
+      if (targetsStatus[i]) {
+        boolean success = false;
+        try {
+          writers[i].transferData2Target(packetBuf, columnIdx);
+          nSuccess++;
+          success = true;
+        } catch (IOException e) {
+          LOG.error("Error while transferring data to target", e);
+        }
+        targetsStatus[i] = success;
+      }
+    }
+    return nSuccess;
+  }
+
   /**
    * Send an empty packet to mark the end of the block.
    */
