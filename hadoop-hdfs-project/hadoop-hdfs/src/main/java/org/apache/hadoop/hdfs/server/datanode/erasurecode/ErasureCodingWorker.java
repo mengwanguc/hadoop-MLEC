@@ -137,13 +137,14 @@ public final class ErasureCodingWorker {
                 + "poolId {}, blockId {}\n"
                 + "target data nodes {}\n"
                 + "target storage type {}, id {}\n"
-                + "zfs failure indices {}, {}",
+                + "zfs failure indices {}, {}, {}",
                 reconInfo.getExtendedBlock().getBlockPoolId(),
                 reconInfo.getExtendedBlock().getBlockId(),
                 targetDataNodesStr,
                 reconInfo.getTargetStorageTypes(), reconInfo.getTargetStorageIDs(),
                 reconInfo.getZfsFailureIndices(),
-                reconInfo.getLiveBlockIndices());
+                reconInfo.getLiveBlockIndices(),
+                reconInfo.getLocalBlockId());
 
         // MLEC - register ongoing repairs
         LOG.info("Adding block {} to ongoing reconstruction map", reconInfo.getExtendedBlock().getLocalBlock().getBlockId());
