@@ -24,10 +24,10 @@ COMMANDS = {
 
 # Environment variables for the nodes
 ENV_VARS = {
-    'namenode': {'HADOOP_PID_DIR': '/tmp/hdfs/namenode', 'HADOOP_CONF_DIR': '/home/aaronmao/hadoop-MLEC/dockers'},
-    'dn1': {'HADOOP_PID_DIR': '/tmp/hdfs/dn1', 'HADOOP_CONF_DIR': '/home/aaronmao/hadoop-MLEC/dockers/dn1'},
-    'dn2': {'HADOOP_PID_DIR': '/tmp/hdfs/dn2', 'HADOOP_CONF_DIR': '/home/aaronmao/hadoop-MLEC/dockers/dn2'},
-    'dn3': {'HADOOP_PID_DIR': '/tmp/hdfs/dn3', 'HADOOP_CONF_DIR': '/home/aaronmao/hadoop-MLEC/dockers/dn3'}
+    'namenode': {'HADOOP_PID_DIR': '/tmp/hdfs/namenode', 'HADOOP_CONF_DIR': '/home/aaronmao/hadoop-MLEC/dockers', 'HADOOP_ROOT_LOGGER': 'DEBUG,stdout'},
+    'dn1': {'HADOOP_PID_DIR': '/tmp/hdfs/dn1', 'HADOOP_CONF_DIR': '/home/aaronmao/hadoop-MLEC/dockers/dn1', 'HADOOP_ROOT_LOGGER': 'DEBUG,stdout'},
+    'dn2': {'HADOOP_PID_DIR': '/tmp/hdfs/dn2', 'HADOOP_CONF_DIR': '/home/aaronmao/hadoop-MLEC/dockers/dn2', 'HADOOP_ROOT_LOGGER': 'INFO,stdout'},
+    'dn3': {'HADOOP_PID_DIR': '/tmp/hdfs/dn3', 'HADOOP_CONF_DIR': '/home/aaronmao/hadoop-MLEC/dockers/dn3', 'HADOOP_ROOT_LOGGER': 'INFO,stdout'}
 }
 
 processes = {}
@@ -50,6 +50,7 @@ def start_node(node_name):
 
     log_file_path = f'log-{node_name}.log'
 
+    print(env)
     process = subprocess.Popen(
         COMMANDS[node_name],
         stdout=subprocess.PIPE,

@@ -174,6 +174,8 @@ class StripedBlockWriter {
       return;
     }
 
+    LOG.info("Transferring {} bytes in StripedBlockWriter", packetBuf.length);
+
     if (targetBuffer.isDirect()) {
       ByteBuffer directCheckSumBuf =
           BUFFER_POOL.getBuffer(true, stripedWriter.getChecksumBuf().length);
@@ -199,6 +201,50 @@ class StripedBlockWriter {
           maxBytesToPacket : targetBuffer.remaining();
       int ckLen = ((toWrite - 1) / stripedWriter.getBytesPerChecksum() + 1)
           * stripedWriter.getChecksumSize();
+      packet.writeChecksum(stripedWriter.getChecksumBuf(), ckOff, ckLen);
+      ckOff += ckLen;
+      packet.writeData(targetBuffer, toWrite);
+
+      // Send packet
+      packet.writeTo(targetOutputStream);
+
+      blockOffset4Target += toWrite;
+      stripedWriter.getReconstructor().incrBytesWritten(toWrite);
+    }
+  }
+
+  void transferData2Target(byte[] packetBuf, int colIdx) throws IOException {
+    if (targetBuffer.remaining() == 0) {
+      return;
+    }
+
+    LOG.info("Transferring {} bytes in StripedBlockWriter", packetBuf.length);
+
+    if (targetBuffer.isDirect()) {
+      ByteBuffer directCheckSumBuf =
+              BUFFER_POOL.getBuffer(true, stripedWriter.getChecksumBuf().length);
+      stripedWriter.getChecksum().calculateChunkedSums(
+              targetBuffer, directCheckSumBuf);
+      directCheckSumBuf.get(stripedWriter.getChecksumBuf());
+      BUFFER_POOL.putBuffer(directCheckSumBuf);
+    } else {
+      stripedWriter.getChecksum().calculateChunkedSums(
+              targetBuffer.array(), 0, targetBuffer.remaining(),
+              stripedWriter.getChecksumBuf(), 0);
+    }
+
+    int ckOff = 0;
+    while (targetBuffer.remaining() > 0) {
+      DFSPacket packet = new DFSPacket(packetBuf,
+              stripedWriter.getMaxChunksPerPacket(),
+              blockOffset4Target, seqNo4Target++,
+              stripedWriter.getChecksumSize(), false, colIdx);
+      int maxBytesToPacket = stripedWriter.getMaxChunksPerPacket()
+              * stripedWriter.getBytesPerChecksum();
+      int toWrite = targetBuffer.remaining() > maxBytesToPacket ?
+              maxBytesToPacket : targetBuffer.remaining();
+      int ckLen = ((toWrite - 1) / stripedWriter.getBytesPerChecksum() + 1)
+              * stripedWriter.getChecksumSize();
       packet.writeChecksum(stripedWriter.getChecksumBuf(), ckOff, ckLen);
       ckOff += ckLen;
       packet.writeData(targetBuffer, toWrite);

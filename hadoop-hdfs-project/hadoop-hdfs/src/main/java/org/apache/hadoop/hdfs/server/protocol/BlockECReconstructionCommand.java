@@ -152,6 +152,14 @@ public class BlockECReconstructionCommand extends DatanodeCommand {
       return zfsFailureIndices;
     }
 
+    public long getLocalBlockId() {
+      return this.localBlockId;
+    }
+
+    public void setLocalBlockId(long localBlockId) {
+      this.localBlockId = localBlockId;
+    }
+
     @Override
     public String toString() {
       return new StringBuilder().append("BlockECReconstructionInfo(\n  ")
@@ -160,6 +168,7 @@ public class BlockECReconstructionCommand extends DatanodeCommand {
           .append(Arrays.asList(targets)).append(")\n")
           .append(" Block Indices: ").append(Arrays.toString(liveBlockIndices))
           .append(" Zfs Failure Indices: ").append(zfsFailureIndices)
+          .append(" Local Block Id: ").append(localBlockId)
           .toString();
     }
   }

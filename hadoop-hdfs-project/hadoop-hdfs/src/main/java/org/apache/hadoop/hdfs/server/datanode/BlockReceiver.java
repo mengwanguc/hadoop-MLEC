@@ -31,10 +31,13 @@ import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.Checksum;
 
+import jni.DnodeAttributes;
+import jni.Tools;
 import org.apache.hadoop.fs.ChecksumException;
 import org.apache.hadoop.fs.FSOutputSummer;
 import org.apache.hadoop.fs.StorageType;
@@ -48,6 +51,7 @@ import org.apache.hadoop.hdfs.protocol.datatransfer.PacketReceiver;
 import org.apache.hadoop.hdfs.protocol.datatransfer.PipelineAck;
 import org.apache.hadoop.hdfs.protocol.proto.DataTransferProtos.BlockOpResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.DataTransferProtos.Status;
+import org.apache.hadoop.hdfs.server.datanode.erasurecode.ErasureCodingWorker;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.ReplicaInputStreams;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.ReplicaOutputStreams;
 import org.apache.hadoop.hdfs.server.datanode.metrics.DataNodePeerMetrics;
@@ -614,6 +618,7 @@ class BlockReceiver implements Closeable {
     if (seqno != DFSPacket.HEART_BEAT_SEQNO) {
       datanode.metrics.incrPacketsReceived();
     }
+
     //First write the packet to the mirror:
     if (mirrorOut != null && !mirrorError) {
       try {
@@ -669,6 +674,7 @@ class BlockReceiver implements Closeable {
           verifyChunks(dataBuf, checksumBuf);
         } catch (IOException ioe) {
           // checksum error detected locally. there is no reason to continue.
+          LOG.error("Check sum error!", ioe);
           if (responder != null) {
             try {
               ((PacketResponder) responder.getRunnable()).enqueue(seqno,
@@ -696,11 +702,37 @@ class BlockReceiver implements Closeable {
       }
       
       // by this point, the data in the buffer uses the disk checksum
-
+      LOG.info("Data in the buffer uses disk checksum");
       final boolean shouldNotWriteChecksum = checksumReceivedLen == 0
           && streams.isTransientStorage();
       try {
         long onDiskLen = replicaInfo.getBytesOnDisk();
+        LOG.info("On disk length {}, offset in block {}", onDiskLen, offsetInBlock);
+
+        // MLEC logic : checking whether this incoming packet is for MLEC, if so we call API from ZFS wrapper lib
+        LOG.info("Ongoing repairs {}", ErasureCodingWorker.ongoingRepairs);
+        if (ErasureCodingWorker.ongoingRepairs.containsKey(block.getBlockId())) {
+          LOG.warn("This is a MLEC packet!");
+          Tools zfsTools = new Tools();
+          List<DnodeAttributes> dnodes = zfsTools.getFailedChunks("pool");
+          DnodeAttributes reconDnode = null;
+          for (DnodeAttributes dn : dnodes) {
+            if (dn.path.contains(String.valueOf(block.getBlockId())) && !dn.path.contains("meta")) {
+              reconDnode = dn;
+            }
+          }
+
+          if (reconDnode != null) {
+            LOG.info("Found recon dnode {}", reconDnode);
+          } else {
+            throw new IllegalStateException("Cannot find reconstruction dnode for block " + block.getBlockId());
+          }
+
+          LOG.info("Writing to dnode at colIdx {}", header.getColIdx());
+          // TODO: pass in the column index information into the DFS packet
+          new Tools().writeRepairData("pool", reconDnode, 0, header.getColIdx(), dataBuf.array());
+        }
+
         if (onDiskLen<offsetInBlock) {
           // Normally the beginning of an incoming packet is aligned with the
           // existing data on disk. If the beginning packet data offset is not
@@ -731,6 +763,10 @@ class BlockReceiver implements Closeable {
           // aligned, the packet should terminate at or before the next
           // chunk boundary.
           if (!alignedInPacket && len > bytesPerChecksum) {
+            LOG.info("Unexpected packet data length for "
+                    +  block + " from " + inAddr + ": a partial chunk must be "
+                    + " sent in an individual packet (data length = " + len
+                    +  " > bytesPerChecksum = " + bytesPerChecksum + ")");
             throw new IOException("Unexpected packet data length for "
                 +  block + " from " + inAddr + ": a partial chunk must be "
                 + " sent in an individual packet (data length = " + len
@@ -762,9 +798,12 @@ class BlockReceiver implements Closeable {
 
           // Actual number of data bytes to write.
           int numBytesToDisk = (int)(offsetInBlock-onDiskLen);
+
+          LOG.info("StartByteToDisk {}, numBytesToDisk {} for block {}", startByteToDisk, numBytesToDisk, block.getBlockId());
           
           // Write data to disk.
           long begin = Time.monotonicNow();
+          LOG.info("Writing data to disk");
           streams.writeDataToDisk(dataBuf.array(),
               startByteToDisk, numBytesToDisk);
           // no-op in prod
@@ -849,6 +888,7 @@ class BlockReceiver implements Closeable {
             }
           }
 
+          LOG.info("Flushing the entire packet");
           /// flush entire packet, sync if requested
           flushOrSync(syncBlock, seqno);
           

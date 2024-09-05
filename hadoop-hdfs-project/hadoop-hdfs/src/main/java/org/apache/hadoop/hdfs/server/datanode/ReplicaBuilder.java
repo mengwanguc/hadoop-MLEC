@@ -191,6 +191,7 @@ public class ReplicaBuilder {
   public LocalReplicaInPipeline buildLocalReplicaInPipeline()
       throws IllegalArgumentException {
     LocalReplicaInPipeline info = null;
+    LOG.info("Build local replica in pipeline with state {}", state);
     switch (state) {
       case RBW:
         info = buildRBW();
@@ -233,9 +234,9 @@ public class ReplicaBuilder {
     }
   }
 
-  private LocalReplicaInPipeline buildMlecRepairReplica() throws IllegalArgumentException {
+  private MlecLocalReplicaInPipeline buildMlecRepairReplica() throws IllegalArgumentException {
     LOG.info("Local replica in pipeline {}, {}, {}", blockId, length, genStamp);
-    LocalReplicaInPipeline replica = new LocalReplicaInPipeline(blockId, length, genStamp,
+    MlecLocalReplicaInPipeline replica = new MlecLocalReplicaInPipeline(blockId, length, genStamp,
             volume, directoryUsed, writer, bytesToReserve);
 
     return replica;

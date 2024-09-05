@@ -70,6 +70,40 @@ public class PacketHeader {
   }
 
   public PacketHeader(int packetLen, long offsetInBlock, long seqno,
+                      boolean lastPacketInBlock, int dataLen, boolean syncBlock, Integer colIdx) {
+    this.packetLen = packetLen;
+    Preconditions.checkArgument(packetLen >= Ints.BYTES,
+            "packet len %s should always be at least 4 bytes",
+            packetLen);
+
+    PacketHeaderProto.Builder builder;
+    if (colIdx == null) {
+      builder = PacketHeaderProto.newBuilder()
+              .setOffsetInBlock(offsetInBlock)
+              .setSeqno(seqno)
+              .setLastPacketInBlock(lastPacketInBlock)
+              .setDataLen(dataLen);
+    } else {
+      builder = PacketHeaderProto.newBuilder()
+              .setOffsetInBlock(offsetInBlock)
+              .setSeqno(seqno)
+              .setLastPacketInBlock(lastPacketInBlock)
+              .setDataLen(dataLen)
+              .setColIdx(colIdx);
+    }
+
+    if (syncBlock) {
+      // Only set syncBlock if it is specified.
+      // This is wire-incompatible with Hadoop 2.0.0-alpha due to HDFS-3721
+      // because it changes the length of the packet header, and BlockReceiver
+      // in that version did not support variable-length headers.
+      builder.setSyncBlock(true);
+    }
+
+    proto = builder.build();
+  }
+
+  public PacketHeader(int packetLen, long offsetInBlock, long seqno,
                       boolean lastPacketInBlock, int dataLen, boolean syncBlock) {
     this.packetLen = packetLen;
     Preconditions.checkArgument(packetLen >= Ints.BYTES,
@@ -115,6 +149,10 @@ public class PacketHeader {
 
   public boolean getSyncBlock() {
     return proto.getSyncBlock();
+  }
+
+  public Integer getColIdx() {
+    return proto.getColIdx();
   }
 
   @Override

@@ -1101,6 +1101,7 @@ public class PBHelper {
         blockEcRecoveryInfo.getErasureCodingPolicy()));
 
     builder.addAllZfsFailureIndices(blockEcRecoveryInfo.getZfsFailureIndices());
+    builder.setLocalBlockId(blockEcRecoveryInfo.getLocalBlockId());
 
     return builder.build();
   }

@@ -74,6 +74,9 @@ public class DFSPacket {
   private int traceParentsUsed;
   private Span span;
 
+  // MLEC
+  private Integer colIdx;
+
   /**
    * Create a new packet.
    *
@@ -92,6 +95,33 @@ public class DFSPacket {
     this.seqno = seqno;
 
     this.buf = buf;
+
+    checksumStart = PacketHeader.PKT_MAX_HEADER_LEN;
+    checksumPos = checksumStart;
+    dataStart = checksumStart + (chunksPerPkt * checksumSize);
+    dataPos = dataStart;
+    maxChunks = chunksPerPkt;
+  }
+
+  /**
+   * Create a new packet.
+   *
+   * @param buf the buffer storing data and checksums
+   * @param chunksPerPkt maximum number of chunks per packet.
+   * @param offsetInBlock offset in bytes into the HDFS block.
+   * @param seqno the sequence number of this packet
+   * @param checksumSize the size of checksum
+   * @param lastPacketInBlock if this is the last packet
+   */
+  public DFSPacket(byte[] buf, int chunksPerPkt, long offsetInBlock, long seqno,
+                   int checksumSize, boolean lastPacketInBlock, Integer colIdx) {
+    this.lastPacketInBlock = lastPacketInBlock;
+    this.numChunks = 0;
+    this.offsetInBlock = offsetInBlock;
+    this.seqno = seqno;
+
+    this.buf = buf;
+    this.colIdx = colIdx;
 
     checksumStart = PacketHeader.PKT_MAX_HEADER_LEN;
     checksumPos = checksumStart;
@@ -165,7 +195,7 @@ public class DFSPacket {
     final int pktLen = HdfsConstants.BYTES_IN_INTEGER + dataLen + checksumLen;
 
     PacketHeader header = new PacketHeader(
-        pktLen, offsetInBlock, seqno, lastPacketInBlock, dataLen, syncBlock);
+        pktLen, offsetInBlock, seqno, lastPacketInBlock, dataLen, syncBlock, colIdx);
 
     if (checksumPos != dataStart) {
       // Move the checksum to cover the gap. This can happen for the last
@@ -363,5 +393,9 @@ public class DFSPacket {
 
   public Span getSpan() {
     return span;
+  }
+
+  private int getColIdx() {
+    return this.colIdx;
   }
 }

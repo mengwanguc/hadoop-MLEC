@@ -1364,6 +1364,7 @@ public class FsVolumeImpl implements FsVolumeSpi {
 
     ReplicaInPipeline mlecRepairInfo = new ReplicaBuilder(ReplicaState.FINALIZED)
             .setBlockId(b.getBlockId())
+            .setLength(b.getLocalBlock().getNumBytes())
             .setGenerationStamp(b.getGenerationStamp())
             .setDirectoryToUse(f)
             .setBytesToReserve(b.getLocalBlock().getNumBytes())
